@@ -70,12 +70,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'email_saas.wsgi.application'
 
 # --- DATABASE CONFIGURATION (RAILWAY DYNAMIC + LOCAL FALLBACK) ---
-# It looks for the DATABASE_URL environment variable on Railway, 
-# otherwise it falls back to your hardcoded NeonDB connection for local dev.
 DATABASES = {
     'default': dj_database_url.config(
         default='postgresql://neondb_owner:npg_Scm2JeZ4ohgA@ep-curly-river-apf4z7eb-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require',
-        conn_max_age=600
+        conn_max_age=0 # Fix: Set to 0 to stop SSL connection crashes
     )
 }
 
