@@ -1,15 +1,16 @@
 import os
 import time
 import random
-import smtplib
 import socket
 import re
 import traceback
+import base64
 import gspread
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from concurrent.futures import ThreadPoolExecutor
 from groq import Groq
+from googleapiclient.discovery import build
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -20,9 +21,6 @@ from google.oauth2.credentials import Credentials
 
 # =====================================================================
 # --- FORCING IPv4 (THE FIX FOR RAILWAY [Errno 101]) ---
-# Railway containers often have broken IPv6 routing. Since hostnames 
-# resolve to IPv6 first, Python tries it and crashes. 
-# This monkey-patch forces Python's socket library to only use IPv4.
 # =====================================================================
 old_getaddrinfo = socket.getaddrinfo
 def new_getaddrinfo(*args, **kwargs):
@@ -31,9 +29,8 @@ def new_getaddrinfo(*args, **kwargs):
 socket.getaddrinfo = new_getaddrinfo
 # =====================================================================
 
-# --- 1. STRICT ENVIRONMENT LOADING ---
+# --- STRICT ENVIRONMENT LOADING ---
 GROQ_API_TOKEN = os.environ.get('GROQ_API_KEY', '').strip()
-
 
 def check_network():
     """Verifies the Railway container actually has internet access."""
@@ -52,7 +49,7 @@ def process_client_pipeline(client):
         print(f"\n--- [ENGINE NODE] Booting Pipeline: {client.business_name} ---")
         
         # Validation Checks
-        if not client.gmail_app_password or not client.sender_email or not client.google_sheet_link:
+        if not client.sender_email or not client.google_sheet_link:
             print(f"[{client.business_name}] SKIPPED: Missing Profile Credentials.")
             return
 
@@ -93,7 +90,7 @@ def process_client_pipeline(client):
             print(f"[{client.business_name}] ERROR: Column '{client.col_status}' not found in sheet headers.")
             return
 
-        # Initialize Groq with a strict 15-second timeout to prevent infinite hanging
+        # Initialize Groq with strict timeout
         ai_client = Groq(api_key=GROQ_API_TOKEN, timeout=15.0)
 
         # Process Rows
@@ -141,15 +138,17 @@ def process_client_pipeline(client):
                 message_payload['To'] = email
                 message_payload.attach(MIMEText(compiled_html, 'html'))
                 
-                # STEP 3: SMTP Send
-                print(f"  -> Step 3/4: Connecting to Gmail SMTP servers (Port 587)...")
+                # STEP 3: Gmail HTTP API Send
+                print(f"  -> Step 3/4: Transmitting via official Gmail HTTP API (Port 443)...")
                 time.sleep(random.uniform(1.0, 2.0))
                 
-                # USING PORT 587 AND STARTTLS TO BYPASS RAILWAY BLOCKS
-                with smtplib.SMTP('smtp.gmail.com', 587, timeout=15.0) as secure_socket:
-                    secure_socket.starttls() # This is required for port 587
-                    secure_socket.login(client.sender_email, client.gmail_app_password)
-                    secure_socket.sendmail(client.sender_email, email, message_payload.as_string())
+                try:
+                    gmail_service = build('gmail', 'v1', credentials=creds)
+                    raw_string = base64.urlsafe_b64encode(message_payload.as_bytes()).decode()
+                    gmail_service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+                except Exception as api_err:
+                    print(f"  -> GMAIL API ERROR: {str(api_err)}")
+                    raise api_err
                 
                 # STEP 4: Google Sheet Update
                 print(f"  -> Step 4/4: Email dispatched. Updating Google Sheet...")
@@ -172,7 +171,7 @@ def process_client_pipeline(client):
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS("AutoEmail Engine Matrix Online. Strict AI Routing Active..."))
+        self.stdout.write(self.style.SUCCESS("AutoEmail Engine Matrix Online. HTTP Routing Active..."))
         
         if not GROQ_API_TOKEN:
             self.stdout.write(self.style.ERROR("FATAL: GROQ_API_KEY is completely missing from environment variables."))
@@ -180,7 +179,7 @@ class Command(BaseCommand):
 
         while True:
             if not check_network():
-                print("NETWORK WARNING: Container has lost internet access. Sleeping for 15 seconds to wait for Railway network recovery...")
+                print("NETWORK WARNING: Container has lost internet access. Sleeping for 15 seconds...")
                 time.sleep(15)
                 continue
 
