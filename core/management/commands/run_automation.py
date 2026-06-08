@@ -129,11 +129,12 @@ def process_client_pipeline(client):
                 message_payload.attach(MIMEText(compiled_html, 'html'))
                 
                 # STEP 3: SMTP Send
-                print(f"  -> Step 3/4: Connecting to Gmail SMTP servers...")
+                print(f"  -> Step 3/4: Connecting to Gmail SMTP servers (Port 587)...")
                 time.sleep(random.uniform(1.0, 2.0))
                 
-                # Strict 15-second timeout on SMTP to prevent Errno 101 hanging
-                with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=15.0) as secure_socket:
+                # USING PORT 587 AND STARTTLS TO BYPASS RAILWAY BLOCKS
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=15.0) as secure_socket:
+                    secure_socket.starttls() # This is required for port 587
                     secure_socket.login(client.sender_email, client.gmail_app_password)
                     secure_socket.sendmail(client.sender_email, email, message_payload.as_string())
                 
@@ -148,12 +149,10 @@ def process_client_pipeline(client):
                 print(f"  -> SUCCESS: Lead fully processed.")
 
             except Exception as row_error:
-                # This catches errors specific to this exact lead (like SMTP timeouts) so the engine can keep going
                 print(f"  -> ROW FAILURE for {email}: {str(row_error)}")
                 traceback.print_exc()
 
     except Exception as pipeline_error:
-        # This catches massive pipeline failures so the thread doesn't die silently
         print(f"CRITICAL PIPELINE FAULT for '{client.business_name}':")
         traceback.print_exc()
 
