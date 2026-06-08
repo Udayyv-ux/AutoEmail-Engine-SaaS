@@ -110,6 +110,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SOCIALACCOUNT_STORE_TOKENS = True 
 
 # --- GOOGLE OAUTH 2.0 MASTER KEYS ---
+# --- GOOGLE OAUTH 2.0 MASTER KEYS ---
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
@@ -122,6 +123,7 @@ SOCIALACCOUNT_PROVIDERS = {
             'email',
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive.readonly',
+            'https://www.googleapis.com/auth/gmail.send', # <--- ADD THIS LINE
         ],
         'AUTH_PARAMS': {
             'access_type': 'offline',
