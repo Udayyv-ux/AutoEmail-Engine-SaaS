@@ -15,12 +15,25 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from core.models import ClientProfile, EmailTemplate
-
 from allauth.socialaccount.models import SocialToken
 from google.oauth2.credentials import Credentials
 
+# =====================================================================
+# --- FORCING IPv4 (THE FIX FOR RAILWAY [Errno 101]) ---
+# Railway containers often have broken IPv6 routing. Since hostnames 
+# resolve to IPv6 first, Python tries it and crashes. 
+# This monkey-patch forces Python's socket library to only use IPv4.
+# =====================================================================
+old_getaddrinfo = socket.getaddrinfo
+def new_getaddrinfo(*args, **kwargs):
+    responses = old_getaddrinfo(*args, **kwargs)
+    return [response for response in responses if response[0] == socket.AF_INET]
+socket.getaddrinfo = new_getaddrinfo
+# =====================================================================
+
 # --- 1. STRICT ENVIRONMENT LOADING ---
 GROQ_API_TOKEN = os.environ.get('GROQ_API_KEY', '').strip()
+
 
 def check_network():
     """Verifies the Railway container actually has internet access."""
