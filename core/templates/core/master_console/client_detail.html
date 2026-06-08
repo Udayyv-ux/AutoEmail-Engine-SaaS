@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Tenant Insights | {{ client.business_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 antialiased font-sans p-8 min-h-screen">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-slate-800 pb-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-black text-white tracking-tight">{{ client.business_name }}</h1>
+                    {% if client.is_engine_active %}
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                    {% else %}
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    {% endif %}
+                </div>
+                <p class="text-slate-400 text-sm mt-1">Tenant Deep-Dive Analytics & Diagnostics</p>
+            </div>
+            <a href="{% url 'super_admin_dashboard' %}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-5 py-2.5 rounded-lg font-bold shadow-md transition border border-slate-700 hover:border-slate-500 flex items-center gap-2">
+                &larr; Back to Registry
+            </a>
+        </div>
+
+        <!-- Master Insight Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col shadow-lg">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Engine Status</span>
+                <span class="text-3xl font-black mt-2 {% if client.is_engine_active %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                    {{ insights.engine_status }}
+                </span>
+            </div>
+            <div class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col shadow-lg">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Lifetime Sent</span>
+                <span class="text-3xl font-black mt-2 text-white">{{ insights.total_emails_sent }}</span>
+            </div>
+            <div class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col shadow-lg">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Deliverability</span>
+                <span class="text-3xl font-black mt-2 text-indigo-400">{{ insights.deliverability_rate }}</span>
+            </div>
+            <div class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col shadow-lg">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Failed Drops</span>
+                <span class="text-3xl font-black mt-2 text-rose-400">{{ insights.failed_count }}</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Client Configuration Snapshot -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                <h3 class="text-lg font-bold text-white mb-6">Backend Node Configuration</h3>
+                <div class="space-y-5">
+                    <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
+                        <span class="block text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Authenticated Sender Email</span>
+                        <span class="text-sm font-medium text-slate-200">{{ client.sender_email|default:"<span class='text-rose-500 italic'>Not configured</span>"|safe }}</span>
+                    </div>
+                    <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
+                        <span class="block text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Target Google Sheet Pipeline</span>
+                        {% if client.google_sheet_link %}
+                            <a href="{{ client.google_sheet_link }}" target="_blank" class="text-sm font-medium text-indigo-400 hover:text-indigo-300 hover:underline truncate block">
+                                {{ client.google_sheet_link }}
+                            </a>
+                        {% else %}
+                            <span class="text-sm text-rose-500 italic">No pipeline linked</span>
+                        {% endif %}
+                    </div>
+                    <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
+                        <span class="block text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2">Column Mapping Matrix</span>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div><span class="text-slate-500">Name:</span> <span class="text-slate-300 font-mono">{{ client.col_name }}</span></div>
+                            <div><span class="text-slate-500">Email:</span> <span class="text-slate-300 font-mono">{{ client.col_email }}</span></div>
+                            <div><span class="text-slate-500">Query:</span> <span class="text-slate-300 font-mono">{{ client.col_query }}</span></div>
+                            <div><span class="text-slate-500">Status:</span> <span class="text-slate-300 font-mono">{{ client.col_status }}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Audit Trail Logs -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl flex flex-col">
+                <h3 class="text-lg font-bold text-white mb-6">Recent Diagnostic Audit Trail</h3>
+                <div class="space-y-3 flex-grow max-h-[340px] overflow-y-auto custom-scrollbar pr-2">
+                    {% for log in recent_logs %}
+                        <div class="flex items-start justify-between bg-slate-900/40 p-3.5 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                            <div>
+                                <p class="text-sm font-bold text-slate-200">{{ log.recipient_email }}</p>
+                                <span class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">{{ log.timestamp|date:"M d, Y H:i" }}</span>
+                            </div>
+                            <div class="text-right">
+                                {% if log.status == 'SUCCESS' %}
+                                    <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-black uppercase tracking-wider block">Delivered</span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md text-[10px] font-black uppercase tracking-wider block" title="{{ log.error_message }}">Failed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="h-full flex flex-col items-center justify-center text-center py-10 opacity-50">
+                            <span class="text-4xl mb-3">📭</span>
+                            <p class="text-slate-400 text-sm font-medium">No diagnostic logs found.<br>Awaiting initial dispatch.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Master Intervention Controls -->
+        <div class="bg-slate-800/80 border border-indigo-500/30 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 mt-6">
+            <div>
+                <h3 class="text-lg font-bold text-white">Manual Master Sync</h3>
+                <p class="text-sm text-slate-400">Force the engine to run a dispatch check strictly for this tenant outside of normal chron scheduling.</p>
+            </div>
+            <a href="{% url 'force_sync_engine' client.id %}" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3.5 rounded-lg font-black tracking-wide shadow-[0_0_15px_rgba(79,70,229,0.3)] transition border border-indigo-500 flex-shrink-0">
+                FORCE ENGINE SYNC
+            </a>
+        </div>
+
+    </div>
+</body>
+</html>

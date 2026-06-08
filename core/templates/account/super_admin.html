@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Super Admin Module Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 antialiased font-sans p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <!-- HEADER WITH LOGOUT -->
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master Platform Registry</h1>
+                <p class="text-slate-400 text-sm mt-1 flex items-center gap-2">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Multi-Tenant Operational Console Panel
+                </p>
+            </div>
+            <div class="flex gap-4">
+                <a href="{% url 'account_logout' %}" class="bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white px-5 py-2.5 rounded-lg font-bold shadow-md transition border border-slate-700 hover:border-rose-500 flex items-center gap-2">
+                    System Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- GLOBAL KILL SWITCH -->
+        <div class="bg-slate-800/80 border {% if system_settings.is_engine_paused %}border-rose-500/50 bg-rose-500/10{% else %}border-slate-700{% endif %} rounded-xl p-6 shadow-lg flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-bold {% if system_settings.is_engine_paused %}text-rose-500{% else %}text-white{% endif %}">Master Engine Status</h2>
+                <p class="text-sm text-slate-400">Toggle global dispatch capabilities for all tenant nodes.</p>
+            </div>
+            <form action="{% url 'toggle_killswitch' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="px-6 py-3 font-black rounded-lg shadow-lg transition {% if system_settings.is_engine_paused %}bg-emerald-600 hover:bg-emerald-500 text-white{% else %}bg-rose-600 hover:bg-rose-500 text-white{% endif %}">
+                    {% if system_settings.is_engine_paused %}RESUME ALL ENGINES{% else %}ENGAGE KILL SWITCH{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <!-- STATS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 flex flex-col items-center">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Operational Client Channels</span>
+                <span class="text-5xl font-black mt-2 text-white">{{ total_count|default:"0" }}</span>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 flex flex-col items-center">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Active background Pipelines Running</span>
+                <span class="text-5xl font-black mt-2 text-emerald-400">{{ active_count|default:"0" }}</span>
+            </div>
+        </div>
+
+        <!-- CLIENT REGISTRY TABLE -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead class="bg-slate-800/50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Business Domain Node</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Delivery Vector Mail</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Automation Engine Matrix Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700 bg-slate-900/40">
+                    {% for client in clients %}
+                    <tr class="hover:bg-slate-800/30 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <a href="{% url 'client_insights' client.id %}" class="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition duration-150">
+                                {{ client.business_name }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-300">{{ client.sender_email|default:"Not Initialized" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if client.is_engine_active %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Operational</span>
+                            {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">Deactivated</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-12 text-center text-xs text-slate-500">AutoEmail Engine - Created by Uday</div>
+    </div>
+</body>
+</html>

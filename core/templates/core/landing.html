@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoEmail Engine - Local Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 flex flex-col items-center justify-center min-h-screen font-sans text-slate-100">
+    
+    <div class="text-center mb-10">
+        <h1 class="text-4xl font-black text-white tracking-tight uppercase">AutoEmail <span class="text-indigo-500">Gateway</span></h1>
+        <p class="text-slate-400 mt-2 text-sm uppercase tracking-widest font-semibold">Local Development Environment</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl px-6">
+        
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 hover:border-indigo-500 transition duration-300 group shadow-xl">
+            <div class="h-12 w-12 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center mb-6 border border-indigo-500/30">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">Master Admin Console</h2>
+            <p class="text-slate-400 text-sm mb-6">Manage tenants, view active pipelines, and monitor overall system health.</p>
+            <a href="{% url 'super_admin_dashboard' %}" class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Access Admin Panel</a>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 hover:border-emerald-500 transition duration-300 group shadow-xl">
+            <div class="h-12 w-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center mb-6 border border-emerald-500/30">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">Tenant Workspace</h2>
+            <p class="text-slate-400 text-sm mb-6">Configure delivery endpoints, link Google Sheets, and build email templates.</p>
+            <a href="{% url 'client_portal' %}" class="block w-full text-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-3 px-4 rounded-lg transition">Access Client Portal</a>
+        </div>
+
+    </div>
+
+    {% if user.is_authenticated %}
+    <div class="mt-12 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-center justify-between w-full max-w-lg">
+        <div>
+            <p class="text-xs text-rose-400 font-bold uppercase tracking-wider">Active Session Detected</p>
+            <p class="text-sm font-semibold text-white">Currently logged in as: <span class="text-rose-300">{{ user.username }}</span></p>
+        </div>
+        <a href="/accounts/logout/" class="bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition">Disconnect Session</a>
+    </div>
+    {% endif %}
+
+</body>
+</html>
