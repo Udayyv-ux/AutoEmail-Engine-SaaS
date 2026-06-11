@@ -82,3 +82,39 @@ class EmailLog(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+
+
+# --- 4. FRONTEND WEBSITE MODELS (NEW) ---
+
+class SiteSetting(models.Model):
+    site_name = models.CharField(max_length=100, default="AutoEmail SaaS")
+    hero_title = models.CharField(max_length=200, default="Next-Gen AI Automation")
+    hero_subtitle = models.TextField(default="Save hours of manual work with intelligent routing.")
+    space_background_url = models.URLField(blank=True, help_text="Optional link to a custom space background image.")
+
+    def __str__(self):
+        return self.site_name
+
+class PricingPlan(models.Model):
+    name = models.CharField(max_length=100, default="Setup Tier")
+    price = models.CharField(max_length=50, default="₹35,000")
+    features = models.TextField(help_text="List features separated by commas (e.g., AI Routing, API setup, Support)")
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.price}"
+
+    # --- ADD THIS FUNCTION ---
+    def get_features_list(self):
+        if self.features:
+            # This cleanly splits the comma-separated text into a list
+            return [feature.strip() for feature in self.features.split(',')]
+        return []
+
+class Policy(models.Model):
+    title = models.CharField(max_length=200, default="Privacy Policy")
+    slug = models.SlugField(unique=True, help_text="e.g., privacy-policy")
+    content = models.TextField()
+
+    def __str__(self):
+        return self.title

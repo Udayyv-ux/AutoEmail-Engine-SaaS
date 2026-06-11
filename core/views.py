@@ -15,7 +15,27 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from .models import ClientProfile, EmailTemplate, SystemSettings, EmailLog
+from .models import ClientProfile, EmailTemplate, SystemSettings, EmailLog, SiteSetting, PricingPlan, Policy
+
+# ==========================================
+# 0. FRONTEND WEBSITE VIEWS
+# ==========================================
+def landing_page(request):
+    site_data = SiteSetting.objects.first() 
+    plans = PricingPlan.objects.all()  # <-- Changed to .all() so boxes always show
+    
+    return render(request, 'account/login.html', {
+        'site_settings': site_data, 
+        'plans': plans
+    })
+
+def policy_page(request, slug):
+    policy = get_object_or_404(Policy, slug=slug)
+    settings = SiteSetting.objects.first()
+    return render(request, 'account/policy.html', {
+        'policy': policy,
+        'settings': settings
+    })
 
 # ==========================================
 # 1. CORE ROUTER
@@ -119,6 +139,48 @@ def run_client_engine(client_id):
 # ==========================================
 @user_passes_test(check_admin)
 def super_admin_dashboard(request):
+    site_settings, created = SiteSetting.objects.get_or_create(id=1)
+    plans = PricingPlan.objects.all()
+    policies = Policy.objects.all()  # <-- MISSING IN YOUR CODE (Fetches the policies)
+
+    if request.method == "POST":
+        form_type = request.POST.get("form_type")
+        
+        if form_type == "update_hero":
+            site_settings.site_name = request.POST.get("site_name", site_settings.site_name)
+            site_settings.hero_title = request.POST.get("hero_title", site_settings.hero_title)
+            site_settings.hero_subtitle = request.POST.get("hero_subtitle", site_settings.hero_subtitle)
+            site_settings.save()
+            messages.success(request, "Website text updated globally.")
+            
+        elif form_type == "add_plan":
+            PricingPlan.objects.create(
+                name=request.POST.get("plan_name"),
+                price=request.POST.get("plan_price"),
+                features=request.POST.get("plan_features")
+            )
+            messages.success(request, "New pricing tier injected.")
+        
+        elif form_type == "delete_plan":
+            plan_id = request.POST.get("plan_id")
+            PricingPlan.objects.filter(id=plan_id).delete()
+            messages.success(request, "Pricing tier terminated.")
+            
+        # ==========================================
+        # THIS IS WHAT SAVES THE POLICY! (It was missing)
+        # ==========================================
+        elif form_type == "save_policy":
+            Policy.objects.update_or_create(
+                slug=request.POST.get("slug"),
+                defaults={
+                    'title': request.POST.get("title"),
+                    'content': request.POST.get("content")
+                }
+            )
+            messages.success(request, "Legal policy updated successfully.")
+
+        return redirect('super_admin_dashboard')
+
     clients = ClientProfile.objects.all()
     total_count = clients.count()
     active_count = clients.filter(is_engine_active=True).count()
@@ -129,6 +191,9 @@ def super_admin_dashboard(request):
         'active_count': active_count,
         'system_settings': SystemSettings.load(),
         'recent_errors': EmailLog.objects.filter(status='FAILED').order_by('-timestamp')[:10],
+        'site_settings': site_settings,
+        'plans': plans,
+        'policies': policies,  # <-- MISSING IN YOUR CODE (Sends policies to the HTML)
     })
 
 @user_passes_test(check_admin)
@@ -217,9 +282,6 @@ def client_portal(request):
             
         return redirect('client_portal')
 
-    # -----------------------------------------------------------------
-    # DYNAMIC GRAPH LOGIC
-    # -----------------------------------------------------------------
     time_range = request.GET.get('range', '7d')
     now = timezone.now()
     base_logs = client.email_logs.filter(status='SUCCESS')
@@ -234,7 +296,6 @@ def client_portal(request):
         start_date = now - timedelta(days=30)
         filtered_logs = base_logs.filter(timestamp__gte=start_date)
     else:
-        # 'all' time
         filtered_logs = base_logs
 
     daily_stats = filtered_logs.annotate(
@@ -281,9 +342,9 @@ def custom_admin_login(request):
         
         if user is not None and user.is_staff:
             django_login(request, user)
-            return redirect('dashboard_router')
+            return redirect('super_admin_dashboard') 
         else:
             messages.error(request, "Invalid System Administrator credentials.")
-            return redirect('account_login')
+            return redirect('custom_admin_login')
             
-    return redirect('account_login')
+    return render(request, 'account/admin_login.html')
