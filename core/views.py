@@ -22,7 +22,7 @@ from .models import ClientProfile, EmailTemplate, SystemSettings, EmailLog, Site
 # ==========================================
 def landing_page(request):
     site_data = SiteSetting.objects.first() 
-    plans = PricingPlan.objects.all()  # <-- Changed to .all() so boxes always show
+    plans = PricingPlan.objects.all()
     
     return render(request, 'account/login.html', {
         'site_settings': site_data, 
@@ -60,7 +60,8 @@ def check_admin(user):
 # ==========================================
 # 2. INTEGRATED AUTOMATION ENGINE
 # ==========================================
-def run_client_engine(client_id):
+# Notice: 'request' has been added as a parameter to generate the live URL
+def run_client_engine(client_id, request):
     if SystemSettings.load().is_engine_paused:
         return "GLOBAL KILL SWITCH IS ACTIVE. Engine halted."
 
@@ -119,6 +120,22 @@ def run_client_engine(client_id):
             body_content = template.html_body if template.html_body else f"Hello {name},\n\nWe received your inquiry.\n\nBest,\n{client.business_name}"
             body_content = body_content.replace('{{Name}}', name)
             
+            # ==========================================
+            # DYNAMIC IMAGE INJECTION LOGIC
+            # ==========================================
+            if template.image:
+                # Creates the public, absolute URL so Gmail can display it
+                public_image_url = request.build_absolute_uri(template.image.url)
+                
+                # HTML styling for the banner
+                image_html = f'<div style="text-align: center; margin-bottom: 20px;"><img src="{public_image_url}" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>'
+                
+                if template.html_body:
+                    body_content = image_html + body_content
+                else:
+                    body_content = image_html + body_content.replace('\n', '<br>')
+                    template.html_body = "True" # Forces multipart conversion
+            
             msg.attach(MIMEText(body_content, 'html' if template.html_body else 'plain'))
             smtp_server.send_message(msg)
             
@@ -141,7 +158,7 @@ def run_client_engine(client_id):
 def super_admin_dashboard(request):
     site_settings, created = SiteSetting.objects.get_or_create(id=1)
     plans = PricingPlan.objects.all()
-    policies = Policy.objects.all()  # <-- MISSING IN YOUR CODE (Fetches the policies)
+    policies = Policy.objects.all()
 
     if request.method == "POST":
         form_type = request.POST.get("form_type")
@@ -166,9 +183,6 @@ def super_admin_dashboard(request):
             PricingPlan.objects.filter(id=plan_id).delete()
             messages.success(request, "Pricing tier terminated.")
             
-        # ==========================================
-        # THIS IS WHAT SAVES THE POLICY! (It was missing)
-        # ==========================================
         elif form_type == "save_policy":
             Policy.objects.update_or_create(
                 slug=request.POST.get("slug"),
@@ -193,7 +207,7 @@ def super_admin_dashboard(request):
         'recent_errors': EmailLog.objects.filter(status='FAILED').order_by('-timestamp')[:10],
         'site_settings': site_settings,
         'plans': plans,
-        'policies': policies,  # <-- MISSING IN YOUR CODE (Sends policies to the HTML)
+        'policies': policies,
     })
 
 @user_passes_test(check_admin)
@@ -207,7 +221,8 @@ def toggle_global_killswitch(request):
 
 @user_passes_test(check_admin)
 def force_sync_engine(request, client_id):
-    result = run_client_engine(client_id)
+    # Added 'request' here so it can pass the context to the engine
+    result = run_client_engine(client_id, request)
     messages.info(request, f"Engine Response: {result}")
     return redirect('super_admin_dashboard')
 
@@ -272,7 +287,8 @@ def client_portal(request):
                 client=client,
                 project_id=request.POST.get("project_id", ""),
                 subject=request.POST.get("subject", ""),
-                html_body=request.POST.get("html_body", "")
+                html_body=request.POST.get("html_body", ""),
+                image=request.FILES.get("image") # <-- Saves the physical image to the database!
             )
             messages.success(request, "Template Deployed!")
             

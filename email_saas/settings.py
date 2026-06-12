@@ -150,3 +150,9 @@ ACCOUNT_USERNAME_REQUIRED = False
 LOGIN_REDIRECT_URL = '/dashboard-router/' 
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 ACCOUNT_LOGOUT_ON_GET = True
+
+import os
+
+# Media file configurations
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

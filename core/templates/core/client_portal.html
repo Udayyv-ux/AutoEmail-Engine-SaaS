@@ -15,48 +15,48 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        /* Soft glowing focus effects inspired by the logo's modern feel */
+        .focus-glow:focus { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); border-color: #10b981; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
+<body class="bg-[#f8fafc] text-slate-800 font-sans antialiased min-h-screen">
 
     {% if messages %}
     <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
         {% for message in messages %}
-        <div class="px-6 py-4 rounded-xl shadow-lg border border-slate-200 bg-white text-slate-800 font-medium text-sm animate-fade-in-up flex items-center gap-3">
-            <div class="w-2 h-2 rounded-full {% if 'error' in message.tags %}bg-rose-500{% else %}bg-emerald-500{% endif %}"></div>
+        <div class="px-6 py-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 bg-white text-slate-800 font-medium text-sm animate-fade-in-up flex items-center gap-3">
+            <div class="w-2.5 h-2.5 rounded-full {% if 'error' in message.tags %}bg-rose-500{% else %}bg-emerald-500{% endif %}"></div>
             {{ message }}
         </div>
         {% endfor %}
     </div>
     {% endif %}
 
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-40">
         <div class="max-w-6xl mx-auto px-6 h-16 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-inner">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
                     {{ client.business_name|make_list|first|upper }}
                 </div>
-                <h1 class="text-xl font-bold text-slate-900 tracking-tight">{{ client.business_name }}</h1>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ client.business_name }}</h1>
             </div>
-            <a href="{% url 'account_logout' %}" class="text-sm font-semibold text-slate-500 hover:text-rose-600 transition-colors">Log out</a>
+            <a href="{% url 'account_logout' %}" class="text-sm font-bold text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 hover:bg-rose-50 px-4 py-2 rounded-lg">Log out</a>
         </div>
     </nav>
 
     <div class="max-w-6xl mx-auto p-6 space-y-8 mt-4">
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
             <!-- Dynamic Analytics Chart -->
-            <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-4">
+            <div class="lg:col-span-2 bg-white p-7 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col justify-between hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow">
+                <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Delivery Insights</h3>
-                        <p class="text-2xl font-black text-slate-800 mt-1">{{ total_emails_sent|default:"0" }} <span class="text-sm font-medium text-slate-500">Sent in period</span></p>
+                        <h3 class="text-[11px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-md inline-block mb-2">Delivery Insights</h3>
+                        <p class="text-3xl font-black text-slate-800 mt-1">{{ total_emails_sent|default:"0" }} <span class="text-sm font-semibold text-slate-400">Sent in period</span></p>
                     </div>
                     
-                    <!-- THE NEW DROPDOWN MENU -->
                     <form id="time-range-form" method="GET" class="m-0">
-                        <select name="range" onchange="document.getElementById('time-range-form').submit()" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-200 outline-none cursor-pointer hover:bg-blue-100 transition shadow-sm appearance-none pr-8 relative" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231d4ed8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.7rem top 50%; background-size: 0.65rem auto;">
+                        <select name="range" onchange="document.getElementById('time-range-form').submit()" class="bg-white text-slate-700 px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 outline-none cursor-pointer hover:border-emerald-500 hover:text-emerald-700 transition shadow-sm appearance-none pr-9 relative" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2310b981%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;">
                             <option value="today" {% if request.GET.range == 'today' %}selected{% endif %}>Today</option>
                             <option value="7d" {% if request.GET.range == '7d' or not request.GET.range %}selected{% endif %}>Past 7 Days</option>
                             <option value="30d" {% if request.GET.range == '30d' %}selected{% endif %}>Past 30 Days</option>
@@ -70,153 +70,177 @@
             </div>
 
             <!-- Live Audit Trail -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Live Dispatch Feed</h3>
-                <div class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-3 max-h-[240px]">
+            <div class="bg-white p-7 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-shadow">
+                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Live Dispatch
+                </h3>
+                <div class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-4 max-h-[240px]">
                     {% for log in recent_logs %}
-                        <div class="flex items-start gap-3 text-sm">
-                            <span class="text-slate-400 font-mono text-xs mt-0.5">{{ log.timestamp|date:"H:i" }}</span>
+                        <div class="flex items-start gap-3 text-sm group">
+                            <span class="text-slate-300 font-mono text-xs mt-0.5 group-hover:text-slate-400 transition-colors">{{ log.timestamp|date:"H:i" }}</span>
                             <div>
                                 {% if log.status == 'SUCCESS' %}
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">DELIVERED</span>
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">DELIVERED</span>
                                 {% else %}
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">FAILED</span>
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100">FAILED</span>
                                 {% endif %}
-                                <p class="text-slate-600 truncate max-w-[180px] mt-0.5">{{ log.recipient_email }}</p>
+                                <p class="text-slate-600 font-medium truncate max-w-[170px] mt-1">{{ log.recipient_email }}</p>
                             </div>
                         </div>
                     {% empty %}
-                        <div class="text-sm text-slate-400 italic text-center mt-10">Awaiting first engine scan...</div>
+                        <div class="text-sm text-slate-400 italic text-center mt-12 bg-slate-50 p-4 rounded-xl">Awaiting first engine scan...</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
         <!-- Engine Configuration Panel -->
-        <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-slate-900">Engine Configuration</h3>
-                <div class="flex items-center gap-2">
-                    <span class="relative flex h-3 w-3">
+        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative overflow-hidden">
+            <!-- Decorative gradient orb -->
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+            <div class="flex justify-between items-center mb-8 relative z-10">
+                <h3 class="text-xl font-extrabold text-slate-900">Engine Configuration</h3>
+                <div class="flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+                    <span class="relative flex h-2.5 w-2.5">
                         {% if client.is_engine_active %}
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                         {% else %}
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-slate-300"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-300"></span>
                         {% endif %}
                     </span>
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span class="text-[10px] font-black {% if client.is_engine_active %}text-emerald-700{% else %}text-slate-500{% endif %} uppercase tracking-widest">
                         {% if client.is_engine_active %}System Online{% else %}System Offline{% endif %}
                     </span>
                 </div>
             </div>
 
-            <form method="POST" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <form method="POST" class="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
                 {% csrf_token %}
-                <div class="lg:col-span-8 space-y-5">
+                <div class="lg:col-span-8 space-y-6">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Data Source (Google Sheet URL)</label>
-                        <input type="url" name="google_sheet_link" value="{{ client.google_sheet_link|default:'' }}" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none text-sm text-slate-800">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Data Source (Google Sheet URL)</label>
+                        <input type="url" name="google_sheet_link" value="{{ client.google_sheet_link|default:'' }}" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Sender Email</label>
-                            <input type="email" name="sender_email" value="{{ client.sender_email|default:'' }}" placeholder="you@gmail.com" class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none text-sm text-slate-800">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Sender Email</label>
+                            <input type="email" name="sender_email" value="{{ client.sender_email|default:'' }}" placeholder="you@gmail.com" class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Gmail App Password</label>
-                            <input type="password" name="gmail_app_password" value="{{ client.gmail_app_password|default:'' }}" placeholder="••••••••••••••••" class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none text-sm text-slate-800">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Gmail App Password</label>
+                            <input type="password" name="gmail_app_password" value="{{ client.gmail_app_password|default:'' }}" placeholder="••••••••••••••••" class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
                         </div>
                     </div>
                     <div class="pt-2">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-3">Sheet Column Mapping</label>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-3">Sheet Column Mapping</label>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <input type="text" name="col_name" value="{{ client.col_name|default:'Name' }}" placeholder="Name Col" class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" name="col_email" value="{{ client.col_email|default:'Email' }}" placeholder="Email Col" class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" name="col_query" value="{{ client.col_query|default:'Inquiry' }}" placeholder="Query Col" class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" name="col_status" value="{{ client.col_status|default:'Status' }}" placeholder="Status Col" class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" name="col_name" value="{{ client.col_name|default:'Name' }}" placeholder="Name Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                            <input type="text" name="col_email" value="{{ client.col_email|default:'Email' }}" placeholder="Email Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                            <input type="text" name="col_query" value="{{ client.col_query|default:'Inquiry' }}" placeholder="Query Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                            <input type="text" name="col_status" value="{{ client.col_status|default:'Status' }}" placeholder="Status Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
                         </div>
                     </div>
                 </div>
                 
                 <div class="lg:col-span-4 flex flex-col gap-4 justify-end">
-                    <button type="submit" name="save_config" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl border border-slate-200 transition-colors shadow-sm">
+                    <button type="submit" name="save_config" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-4 rounded-xl border border-slate-200 transition-all shadow-sm">
                         Save Configuration
                     </button>
-                    <button type="submit" name="toggle_engine" class="w-full py-4 rounded-xl font-bold text-white transition-all shadow-md {% if client.is_engine_active %}bg-rose-500 hover:bg-rose-600 shadow-rose-500/20{% else %}bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20{% endif %}">
+                    <button type="submit" name="toggle_engine" class="w-full py-4 rounded-xl font-bold text-white transition-all shadow-lg hover:-translate-y-0.5 {% if client.is_engine_active %}bg-rose-500 hover:bg-rose-600 shadow-rose-500/30{% else %}bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30{% endif %}">
                         {% if client.is_engine_active %}
-                            ⏸ STOP AUTOMATION ENGINE
+                            ⏸ STOP ENGINE
                         {% else %}
-                            ▶ START AUTOMATION ENGINE
+                            ▶ START AUTOMATION
                         {% endif %}
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Add Template Form WITH LIVE PREVIEW -->
-        <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 class="text-lg font-bold text-slate-900 mb-6">Deploy New Sequence</h3>
-            <form method="POST" class="flex flex-col gap-6">
+        <!-- Add Template Form WITH FILE UPLOADER & LIVE PREVIEW -->
+        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+            <h3 class="text-xl font-extrabold text-slate-900 mb-6">Deploy New Sequence</h3>
+            
+            <!-- ENCTYPE IS CRITICAL FOR UPLOADING FILES -->
+            <form method="POST" enctype="multipart/form-data" class="flex flex-col gap-6">
                 {% csrf_token %}
-                <div class="flex flex-col md:flex-row gap-4">
-                    <input type="text" name="subject" placeholder="Email Subject Line" class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex-grow focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold" required>
-                    <input type="text" name="project_id" placeholder="Project ID (Optional)" class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 md:w-64 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4">
+                        <input type="text" name="subject" placeholder="Email Subject Line" class="w-full bg-white p-3 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-bold text-slate-800 shadow-sm" required>
+                    </div>
+                    
+                    <!-- NEW IMAGE FILE INPUT -->
+                    <div class="md:col-span-5 relative">
+                        <input type="file" name="image" id="image-upload-input" accept="image/*" class="w-full bg-white p-2.5 rounded-xl border border-slate-200 outline-none text-sm font-medium text-slate-800 shadow-sm cursor-pointer file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-all">
+                    </div>
+                    
+                    <div class="md:col-span-3">
+                        <input type="text" name="project_id" placeholder="Project ID" class="w-full bg-white p-3 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
+                    </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
                     <div class="flex flex-col">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2 flex items-center justify-between">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center justify-between">
                             HTML Editor
-                            <span class="text-[10px] text-blue-500 font-bold bg-blue-50 px-2 py-0.5 rounded">Use {{Name}} for variables</span>
+                            <span class="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">Use {{Name}} for variables</span>
                         </label>
-                        <textarea id="template-editor" name="html_body" placeholder="<h1>Hello {{Name}}!</h1>&#10;<p>Write your HTML here...</p>" class="bg-slate-900 text-emerald-400 font-mono p-4 rounded-xl border border-slate-800 w-full h-64 custom-scrollbar focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-y" required></textarea>
+                        <textarea id="template-editor" name="html_body" placeholder="<h1>Hello {{Name}}!</h1>&#10;<p>Write your HTML here...</p>" class="bg-[#0f172a] text-emerald-400 font-mono p-5 rounded-2xl border border-slate-800 w-full h-72 custom-scrollbar focus:ring-2 focus:ring-emerald-500 outline-none text-sm resize-y shadow-inner" required></textarea>
                     </div>
                     
                     <div class="flex flex-col">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Live Recipient Preview</label>
-                        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm h-full min-h-[16rem] flex flex-col">
-                            <div class="bg-slate-100 px-4 py-2 flex items-center gap-2 border-b border-slate-200">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-3">Live Recipient Preview</label>
+                        <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm h-full min-h-[18rem] flex flex-col">
+                            <div class="bg-slate-50/80 px-4 py-3 flex items-center gap-3 border-b border-slate-200">
                                 <div class="flex gap-1.5">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                                    <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                                    <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                                    <div class="w-3 h-3 rounded-full bg-rose-400/80"></div>
+                                    <div class="w-3 h-3 rounded-full bg-amber-400/80"></div>
+                                    <div class="w-3 h-3 rounded-full bg-emerald-400/80"></div>
                                 </div>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2" id="preview-subject-bar">Subject Preview</span>
+                                <span class="text-[11px] font-bold text-slate-500 truncate" id="preview-subject-bar">Subject Preview</span>
                             </div>
-                            <div id="live-preview-box" class="p-5 text-slate-800 text-sm overflow-y-auto custom-scrollbar flex-grow bg-white">
-                                <span class="text-slate-400 italic flex items-center justify-center h-full">Start typing HTML to see live preview...</span>
+                            <div id="live-preview-box" class="p-6 text-slate-800 text-sm overflow-y-auto custom-scrollbar flex-grow bg-white">
+                                <span class="text-slate-400 italic flex items-center justify-center h-full">Start typing HTML or select an image to preview...</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" name="add_template" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-bold self-end transition-colors shadow-sm shadow-blue-500/30 w-full md:w-auto">
+                <button type="submit" name="add_template" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-xl font-bold self-end transition-all shadow-lg shadow-emerald-500/30 w-full md:w-auto hover:-translate-y-0.5 mt-2">
                     + Save & Deploy Sequence
                 </button>
             </form>
         </div>
 
-        <div class="space-y-6">
-            <h3 class="text-lg font-bold text-slate-900">Active Templates</h3>
+        <div class="space-y-4 pb-10">
+            <h3 class="text-xl font-extrabold text-slate-900 mb-2">Active Templates</h3>
             {% for template in templates %}
-            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
-                <div class="flex justify-between items-center p-5 border-b border-slate-100">
+            <div class="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-center p-6">
                     <div>
-                        <span class="font-bold text-slate-800 text-lg block">{{ template.subject }}</span>
-                        <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">Project: {{ template.project_id|default:"Global" }}</span>
+                        <span class="font-extrabold text-slate-800 text-lg block">{{ template.subject }}</span>
+                        <div class="flex items-center gap-3 mt-2">
+                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md uppercase tracking-wider">Project: {{ template.project_id|default:"Global" }}</span>
+                            {% if template.image %}
+                                <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md uppercase tracking-wider flex items-center gap-1">
+                                    🖼️ Banner Attached
+                                </span>
+                            {% endif %}
+                        </div>
                     </div>
                     <form method="POST">
                         {% csrf_token %}
                         <input type="hidden" name="template_id" value="{{ template.id }}">
-                        <button type="submit" name="delete_template" class="text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                        <button type="submit" name="delete_template" class="text-rose-500 hover:text-white hover:bg-rose-500 px-4 py-2 rounded-xl text-sm font-bold transition-colors">
                             Delete
                         </button>
                     </form>
                 </div>
             </div>
             {% empty %}
-            <div class="text-slate-400 text-sm italic p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-transparent">
+            <div class="text-slate-400 text-sm font-medium p-12 border-2 border-dashed border-slate-200 rounded-[1.5rem] text-center bg-slate-50/50">
                 No active templates. Create your first automated sequence above.
             </div>
             {% endfor %}
@@ -229,22 +253,52 @@
         const editor = document.getElementById('template-editor');
         const previewBox = document.getElementById('live-preview-box');
         const subjectInput = document.querySelector('input[name="subject"]');
+        const imageUrlInput = document.getElementById('image-upload-input');
         const subjectBar = document.getElementById('preview-subject-bar');
 
-        editor.addEventListener('input', function(e) {
-            let content = e.target.value;
-            if (content.trim() === '') {
-                previewBox.innerHTML = '<span class="text-slate-400 italic flex items-center justify-center h-full">Start typing HTML to see live preview...</span>';
+        let currentLocalImageUrl = '';
+
+        // Handle physical file selection and create a temporary local URL for preview
+        imageUrlInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                currentLocalImageUrl = URL.createObjectURL(file);
             } else {
-                content = content.replace(/{{Name}}/gi, '<span style="background-color: #dbeafe; color: #1e40af; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
-                previewBox.innerHTML = content;
+                currentLocalImageUrl = '';
             }
+            updatePreview();
         });
+
+        function updatePreview() {
+            let content = editor.value;
+
+            if (content.trim() === '' && currentLocalImageUrl === '') {
+                previewBox.innerHTML = '<span class="text-slate-400 italic flex items-center justify-center h-full">Start typing HTML or select an image to preview...</span>';
+                return;
+            }
+
+            // Replace variables with aesthetic placeholders
+            content = content.replace(/{{Name}}/gi, '<span style="background-color: #d1fae5; color: #065f46; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
+
+            // Inject the physical image preview at the top
+            if (currentLocalImageUrl !== '') {
+                const imageHtml = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="${currentLocalImageUrl}" alt="Attached Banner" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    </div>
+                `;
+                content = imageHtml + content;
+            }
+            previewBox.innerHTML = content;
+        }
+
+        editor.addEventListener('input', updatePreview);
 
         subjectInput.addEventListener('input', function(e) {
             subjectBar.textContent = e.target.value.trim() === '' ? 'Subject Preview' : e.target.value;
         });
 
+        // Chart Initialization
         const chartLabels = {{ chart_labels|safe|default:"[]" }};
         const chartData = {{ chart_data|safe|default:"[]" }};
         
@@ -257,9 +311,9 @@
                     datasets: [{
                         label: 'Emails Sent',
                         data: chartData,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 4,
-                        barPercentage: 0.6
+                        backgroundColor: '#10b981', // Emerald green
+                        borderRadius: 6,
+                        barPercentage: 0.5
                     }]
                 },
                 options: { 
@@ -269,12 +323,12 @@
                     scales: {
                         y: { 
                             beginAtZero: true, 
-                            grid: { color: '#f1f5f9' },
-                            ticks: { stepSize: 1, color: '#64748b' }
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: { stepSize: 1, color: '#94a3b8', font: {family: "'Segoe UI', sans-serif", weight: 'bold'} }
                         },
                         x: { 
                             grid: { display: false }, 
-                            ticks: { color: '#64748b' } 
+                            ticks: { color: '#94a3b8', font: {family: "'Segoe UI', sans-serif", weight: 'bold'} } 
                         }
                     }
                 }
@@ -282,9 +336,9 @@
         } else {
             const canvas = document.getElementById('emailChart');
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = "#94a3b8";
+            ctx.fillStyle = "#cbd5e1";
             ctx.textAlign = "center";
-            ctx.font = "14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont";
+            ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
             ctx.fillText("No delivery data available yet.", canvas.width/2, canvas.height/2);
         }
     </script>

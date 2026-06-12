@@ -1,6 +1,14 @@
 from django.contrib import admin
 from django.urls import path, include
 from core import views # We need to import the views here to intercept the URL
+from django.conf import settings
+from django.conf.urls.static import static
+
+# ... your existing urlpatterns ...
+
+# Add this at the very bottom
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns = [
     # 1. The default Django admin panel

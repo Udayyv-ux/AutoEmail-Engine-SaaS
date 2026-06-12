@@ -50,6 +50,9 @@ class EmailTemplate(models.Model):
     project_id = models.CharField(max_length=100, blank=True, null=True)
     subject = models.CharField(max_length=255)
     html_body = models.TextField()
+    
+    # --- NEW: True database image storage ---
+    image = models.ImageField(upload_to='campaign_images/', blank=True, null=True)
 
     def __str__(self):
         return self.subject
