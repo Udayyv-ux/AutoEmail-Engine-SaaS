@@ -151,8 +151,17 @@ LOGIN_REDIRECT_URL = '/dashboard-router/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 ACCOUNT_LOGOUT_ON_GET = True
 
-import os
-
-# Media file configurations
+# Media file configurations for uploaded images
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# NEW: Explicitly define storage engines for Django
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        # Note: If your project uses WhiteNoise, change this to "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
