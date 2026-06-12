@@ -4,13 +4,14 @@ import random
 import socket
 import re
 import traceback
-import base64
-import gspread
+import smtplib # <-- ADDED
+from email.utils import formataddr # <-- ADDED
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage # <-- ADDED
 from concurrent.futures import ThreadPoolExecutor
 from groq import Groq
-from googleapiclient.discovery import build
+import gspread
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -33,7 +34,6 @@ socket.getaddrinfo = new_getaddrinfo
 GROQ_API_TOKEN = os.environ.get('GROQ_API_KEY', '').strip()
 
 def check_network():
-    """Verifies the Railway container actually has internet access."""
     try:
         socket.create_connection(("8.8.8.8", 53), timeout=3.0)
         return True
@@ -48,9 +48,8 @@ def process_client_pipeline(client):
     try:
         print(f"\n--- [ENGINE NODE] Booting Pipeline: {client.business_name} ---")
         
-        # Validation Checks
-        if not client.sender_email or not client.google_sheet_link:
-            print(f"[{client.business_name}] SKIPPED: Missing Profile Credentials.")
+        if not client.sender_email or not client.gmail_app_password or not client.google_sheet_link:
+            print(f"[{client.business_name}] SKIPPED: Missing Portal Credentials (Email/App Password/Sheet).")
             return
 
         google_token = SocialToken.objects.filter(account__user=client.user, account__provider='google').first()
@@ -58,6 +57,7 @@ def process_client_pipeline(client):
             print(f"[{client.business_name}] SKIPPED: No Google Token found in database.")
             return
 
+        # We keep OAuth ONLY for reading the Google Sheet securely
         creds = Credentials(
             token=google_token.token,
             refresh_token=google_token.token_secret,
@@ -66,7 +66,6 @@ def process_client_pipeline(client):
             client_secret=settings.SOCIALACCOUNT_PROVIDERS['google']['APP']['secret']
         )
 
-        # Fetch Templates
         available_templates = list(EmailTemplate.objects.filter(client=client).values_list('project_id', flat=True))
         if not available_templates:
             print(f"[{client.business_name}] WARNING: No templates deployed.")
@@ -90,10 +89,8 @@ def process_client_pipeline(client):
             print(f"[{client.business_name}] ERROR: Column '{client.col_status}' not found in sheet headers.")
             return
 
-        # Initialize Groq with strict timeout
         ai_client = Groq(api_key=GROQ_API_TOKEN, timeout=15.0)
 
-        # Process Rows
         for index, row in enumerate(all_records):
             actual_sheet_row = index + 2 
             status_val = str(row.get(client.col_status, "")).strip().upper()
@@ -101,7 +98,6 @@ def process_client_pipeline(client):
             name = str(row.get(client.col_name, "Customer"))
             query = str(row.get(client.col_query, "")).strip()
             
-            # Strict Filtering
             if status_val == "SENT" or not email or "@" not in email or not query or len(query) < 2:
                 continue
 
@@ -124,40 +120,61 @@ def process_client_pipeline(client):
                 extracted_token = ai_inference.choices[0].message.content.strip(".'\" \n")
                 print(f"  -> Step 2/4: AI matched to category '{extracted_token}'. Compiling Email...")
 
-                # STEP 2: Compile Email
+                # STEP 2: Compile Email & Inline Image
                 try:
                     active_template = EmailTemplate.objects.get(client=client, project_id__iexact=extracted_token)
                 except EmailTemplate.DoesNotExist:
-                    print(f"  -> FAILURE: AI hallucinated a category '{extracted_token}' not in list. Skipping row.")
+                    print(f"  -> FAILURE: AI hallucinated a category '{extracted_token}' not in list. Skipping.")
                     continue
 
-                compiled_html = active_template.html_body.replace("{first_name}", name)
-                message_payload = MIMEMultipart('alternative')
-                message_payload['Subject'] = active_template.subject
-                message_payload['From'] = client.sender_email
-                message_payload['To'] = email
-                message_payload.attach(MIMEText(compiled_html, 'html'))
+                # Support both variables
+                compiled_html = active_template.html_body.replace("{first_name}", name).replace("{{Name}}", name)
                 
-                # STEP 3: Gmail HTTP API Send
-                print(f"  -> Step 3/4: Transmitting via official Gmail HTTP API (Port 443)...")
+                # Setup SMTP Structure
+                msg = MIMEMultipart('related')
+                msg['From'] = formataddr((client.business_name, client.sender_email))
+                msg['To'] = email
+                msg['Subject'] = active_template.subject
+                
+                msg_alternative = MIMEMultipart('alternative')
+                msg.attach(msg_alternative)
+
+                if active_template.image and os.path.exists(active_template.image.path):
+                    image_html = '<div style="text-align: center; margin-bottom: 20px;"><img src="cid:banner_img" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>'
+                    compiled_html = image_html + compiled_html
+                    msg_alternative.attach(MIMEText(compiled_html, 'html'))
+                    
+                    try:
+                        with open(active_template.image.path, 'rb') as img_file:
+                            img_mime = MIMEImage(img_file.read())
+                            img_mime.add_header('Content-ID', '<banner_img>')
+                            img_mime.add_header('Content-Disposition', 'inline')
+                            msg.attach(img_mime)
+                    except Exception as img_e:
+                        print(f"Image read error: {img_e}")
+                else:
+                    msg_alternative.attach(MIMEText(compiled_html, 'html'))
+                
+                # STEP 3: SMTP Dispatch using Portal Credentials
+                print(f"  -> Step 3/4: Transmitting via SMTP using Portal Configuration...")
                 time.sleep(random.uniform(1.0, 2.0))
                 
                 try:
-                    gmail_service = build('gmail', 'v1', credentials=creds)
-                    raw_string = base64.urlsafe_b64encode(message_payload.as_bytes()).decode()
-                    gmail_service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+                    smtp_server = smtplib.SMTP('smtp.gmail.com', 587)
+                    smtp_server.starttls()
+                    smtp_server.login(client.sender_email, client.gmail_app_password)
+                    smtp_server.send_message(msg)
+                    smtp_server.quit()
                 except Exception as api_err:
-                    print(f"  -> GMAIL API ERROR: {str(api_err)}")
+                    print(f"  -> SMTP DISPATCH ERROR: {str(api_err)}")
                     raise api_err
                 
                 # STEP 4: Google Sheet Update
                 print(f"  -> Step 4/4: Email dispatched. Updating Google Sheet...")
                 sheet.update_cell(actual_sheet_row, status_col_index, "SENT")
                 
-                # Update DB Stats
                 client.emails_sent_count += 1
                 client.save(update_fields=['emails_sent_count'])
-                
                 print(f"  -> SUCCESS: Lead fully processed.")
 
             except Exception as row_error:
@@ -171,7 +188,7 @@ def process_client_pipeline(client):
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS("AutoEmail Engine Matrix Online. HTTP Routing Active..."))
+        self.stdout.write(self.style.SUCCESS("AutoEmail Engine Matrix Online. SMTP Routing Active..."))
         
         if not GROQ_API_TOKEN:
             self.stdout.write(self.style.ERROR("FATAL: GROQ_API_KEY is completely missing from environment variables."))
