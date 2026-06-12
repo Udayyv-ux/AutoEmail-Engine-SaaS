@@ -352,92 +352,36 @@ def client_portal(request):
         'total_emails_sent': total_emails_sent
     })
 
+# ==========================================
+# MISSING LIVE STATS FUNCTION
+# ==========================================
 @login_required
-def client_portal(request):
-    if request.user.is_superuser:
-        return redirect('super_admin_dashboard')
-        
-    client, _ = ClientProfile.objects.get_or_create(user=request.user)
+def live_client_stats(request):
+    try:
+        client = request.user.clientprofile
+        return JsonResponse({
+            'is_active': client.is_engine_active,
+            'emails_sent': client.emails_sent_count,
+            'last_scanned': client.last_scanned.strftime("%I:%M:%S %p") if client.last_scanned else "Awaiting first scan..."
+        })
+    except:
+        return JsonResponse({'is_active': False, 'emails_sent': 0, 'last_scanned': 'Offline'})
 
+# ==========================================
+# 5. CUSTOM ADMIN AUTHENTICATION
+# ==========================================
+def custom_admin_login(request):
     if request.method == "POST":
-        if "toggle_engine" in request.POST:
-            client.is_engine_active = not client.is_engine_active
-            client.save()
-            messages.success(request, "Engine Status Updated!")
+        u = request.POST.get('username')
+        p = request.POST.get('password')
+        
+        user = authenticate(request, username=u, password=p)
+        
+        if user is not None and user.is_staff:
+            django_login(request, user)
+            return redirect('super_admin_dashboard') 
+        else:
+            messages.error(request, "Invalid System Administrator credentials.")
+            return redirect('custom_admin_login')
             
-        elif "save_config" in request.POST:
-            client.google_sheet_link = request.POST.get("google_sheet_link", "")
-            client.sender_email = request.POST.get("sender_email", "")
-            client.gmail_app_password = request.POST.get("gmail_app_password", "")
-            client.col_name = request.POST.get("col_name", "Name")
-            client.col_email = request.POST.get("col_email", "Email")
-            client.col_query = request.POST.get("col_query", "Inquiry")
-            client.col_status = request.POST.get("col_status", "Status")
-            client.save()
-            messages.success(request, "Configuration Saved!")
-            
-        elif "add_template" in request.POST:
-            # FIX 1: Force save configuration credentials passed along with this unified form
-            client.google_sheet_link = request.POST.get("google_sheet_link", "")
-            client.sender_email = request.POST.get("sender_email", "")
-            client.gmail_app_password = request.POST.get("gmail_app_password", "")
-            client.col_name = request.POST.get("col_name", "Name")
-            client.col_email = request.POST.get("col_email", "Email")
-            client.col_query = request.POST.get("col_query", "Inquiry")
-            client.col_status = request.POST.get("col_status", "Status")
-            client.save()
-
-            # FIX 2: Wipe previous stale template records so the engine's .first() call 
-            # pulls your newest layout, fresh image attachment, and proper sender settings.
-            client.templates.all().delete()
-            
-            EmailTemplate.objects.create(
-                client=client,
-                project_id=request.POST.get("project_id", ""),
-                subject=request.POST.get("subject", ""),
-                html_body=request.POST.get("html_body", ""),
-                image=request.FILES.get("image") 
-            )
-            messages.success(request, "Credentials Saved & New Sequence Deployed!")
-            
-        elif "delete_template" in request.POST:
-            EmailTemplate.objects.filter(id=request.POST.get("template_id"), client=client).delete()
-            messages.success(request, "Template Purged!")
-            
-        return redirect('client_portal')
-
-    time_range = request.GET.get('range', '7d')
-    now_time = timezone.now()
-    base_logs = client.email_logs.filter(status='SUCCESS')
-    
-    if time_range == 'today':
-        start_date = now_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        filtered_logs = base_logs.filter(timestamp__gte=start_date)
-    elif time_range == '7d':
-        start_date = now_time - timedelta(days=7)
-        filtered_logs = base_logs.filter(timestamp__gte=start_date)
-    elif time_range == '30d':
-        start_date = now_time - timedelta(days=30)
-        filtered_logs = base_logs.filter(timestamp__gte=start_date)
-    else:
-        filtered_logs = base_logs
-
-    daily_stats = filtered_logs.annotate(
-        date=TruncDate('timestamp')
-    ).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
-    
-    chart_labels = [stat['date'].strftime("%b %d") for stat in daily_stats]
-    chart_data = [stat['count'] for stat in daily_stats]
-    total_emails_sent = filtered_logs.count()
-    recent_logs = client.email_logs.all()[:15]
-
-    return render(request, 'core/client_portal.html', {
-        'client': client, 
-        'templates': client.templates.all(),
-        'recent_logs': recent_logs,
-        'chart_labels': json.dumps(chart_labels),
-        'chart_data': json.dumps(chart_data),
-        'total_emails_sent': total_emails_sent
-    })
+    return render(request, 'account/admin_login.html')
