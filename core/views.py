@@ -1,4 +1,4 @@
-# Add these to your existing imports at the top
+from email.utils import formataddr
 from email.mime.image import MIMEImage
 import os
 from django.shortcuts import render, redirect, get_object_or_404
@@ -115,20 +115,23 @@ def run_client_engine(client_id, request):
             continue
 
         try:
-            # Changed to 'related' so Gmail knows there is an embedded inline image coming
+            # 1. Base Multipart related (tells Gmail an image is attached)
             msg = MIMEMultipart('related') 
-            msg['From'] = client.sender_email
+            
+            # Formats it beautifully as: "Your Business Name" <youremail@gmail.com>
+            msg['From'] = formataddr((client.business_name, client.sender_email))
             msg['To'] = recipient
             msg['Subject'] = template.subject
+            
+            # 2. Alternative payload (Mandatory for Gmail to not strip the image)
+            msg_alternative = MIMEMultipart('alternative')
+            msg.attach(msg_alternative)
             
             body_content = template.html_body if template.html_body else f"Hello {name},\n\nWe received your inquiry.\n\nBest,\n{client.business_name}"
             body_content = body_content.replace('{{Name}}', name)
             
-            # ==========================================
-            # DYNAMIC INLINE IMAGE INJECTION (BULLETPROOF)
-            # ==========================================
+            # 3. DYNAMIC INLINE IMAGE INJECTION
             if template.image and os.path.exists(template.image.path):
-                # 1. HTML pointing to the hidden embedded image (cid:banner_img)
                 image_html = '<div style="text-align: center; margin-bottom: 20px;"><img src="cid:banner_img" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>'
                 
                 if template.html_body:
@@ -137,18 +140,21 @@ def run_client_engine(client_id, request):
                     body_content = image_html + body_content.replace('\n', '<br>')
                     template.html_body = "True"
                     
-                # 2. Attach the text/html body FIRST
-                msg.attach(MIMEText(body_content, 'html' if template.html_body else 'plain'))
+                # Attach the HTML body to the ALTERNATIVE block
+                msg_alternative.attach(MIMEText(body_content, 'html' if template.html_body else 'plain'))
                 
-                # 3. Read the physical image from the server and embed it invisibly
-                with open(template.image.path, 'rb') as img_file:
-                    img_mime = MIMEImage(img_file.read())
-                    img_mime.add_header('Content-ID', '<banner_img>')
-                    img_mime.add_header('Content-Disposition', 'inline')
-                    msg.attach(img_mime)
+                # Attach the physical image to the MAIN block
+                try:
+                    with open(template.image.path, 'rb') as img_file:
+                        img_mime = MIMEImage(img_file.read())
+                        img_mime.add_header('Content-ID', '<banner_img>')
+                        img_mime.add_header('Content-Disposition', 'inline')
+                        msg.attach(img_mime)
+                except Exception as img_e:
+                    print(f"Image read error: {img_e}")
             else:
-                # No image, just attach the standard text/html
-                msg.attach(MIMEText(body_content, 'html' if template.html_body else 'plain'))
+                # If no image, just attach the text
+                msg_alternative.attach(MIMEText(body_content, 'html' if template.html_body else 'plain'))
             
             smtp_server.send_message(msg)
             

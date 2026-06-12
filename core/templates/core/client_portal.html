@@ -15,7 +15,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
-        /* Soft glowing focus effects inspired by the logo's modern feel */
         .focus-glow:focus { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); border-color: #10b981; }
     </style>
 </head>
@@ -94,84 +93,84 @@
             </div>
         </div>
 
-        <!-- Engine Configuration Panel -->
-        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative overflow-hidden">
-            <!-- Decorative gradient orb -->
-            <div class="absolute -top-24 -right-24 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+        <!-- ============================================== -->
+        <!-- UNIFIED FORM: SAVES CONFIG AND TEMPLATE TOGETHER -->
+        <!-- ============================================== -->
+        <form method="POST" enctype="multipart/form-data" class="space-y-8 relative z-10">
+            {% csrf_token %}
+            
+            <!-- Engine Configuration Panel -->
+            <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
-            <div class="flex justify-between items-center mb-8 relative z-10">
-                <h3 class="text-xl font-extrabold text-slate-900">Engine Configuration</h3>
-                <div class="flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 shadow-sm">
-                    <span class="relative flex h-2.5 w-2.5">
-                        {% if client.is_engine_active %}
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                        {% else %}
-                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-300"></span>
-                        {% endif %}
-                    </span>
-                    <span class="text-[10px] font-black {% if client.is_engine_active %}text-emerald-700{% else %}text-slate-500{% endif %} uppercase tracking-widest">
-                        {% if client.is_engine_active %}System Online{% else %}System Offline{% endif %}
-                    </span>
+                <div class="flex justify-between items-center mb-8 relative z-10">
+                    <h3 class="text-xl font-extrabold text-slate-900">Engine Configuration</h3>
+                    <div class="flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+                        <span class="relative flex h-2.5 w-2.5">
+                            {% if client.is_engine_active %}
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                            {% else %}
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-300"></span>
+                            {% endif %}
+                        </span>
+                        <span class="text-[10px] font-black {% if client.is_engine_active %}text-emerald-700{% else %}text-slate-500{% endif %} uppercase tracking-widest">
+                            {% if client.is_engine_active %}System Online{% else %}System Offline{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+                    <div class="lg:col-span-8 space-y-6">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Data Source (Google Sheet URL)</label>
+                            <input type="url" name="google_sheet_link" value="{{ client.google_sheet_link|default:'' }}" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Sender Email</label>
+                                <input type="email" name="sender_email" value="{{ client.sender_email|default:'' }}" placeholder="you@gmail.com" class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Gmail App Password</label>
+                                <input type="password" name="gmail_app_password" value="{{ client.gmail_app_password|default:'' }}" placeholder="••••••••••••••••" class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
+                            </div>
+                        </div>
+                        <div class="pt-2">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-3">Sheet Column Mapping</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <input type="text" name="col_name" value="{{ client.col_name|default:'Name' }}" placeholder="Name Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                                <input type="text" name="col_email" value="{{ client.col_email|default:'Email' }}" placeholder="Email Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                                <input type="text" name="col_query" value="{{ client.col_query|default:'Inquiry' }}" placeholder="Query Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                                <input type="text" name="col_status" value="{{ client.col_status|default:'Status' }}" placeholder="Status Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:col-span-4 flex flex-col gap-4 justify-end">
+                        <button type="submit" name="save_config" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-4 rounded-xl border border-slate-200 transition-all shadow-sm">
+                            Save Configuration Only
+                        </button>
+                        <button type="submit" name="toggle_engine" class="w-full py-4 rounded-xl font-bold text-white transition-all shadow-lg hover:-translate-y-0.5 {% if client.is_engine_active %}bg-rose-500 hover:bg-rose-600 shadow-rose-500/30{% else %}bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30{% endif %}">
+                            {% if client.is_engine_active %}
+                                ⏸ STOP ENGINE
+                            {% else %}
+                                ▶ START AUTOMATION
+                            {% endif %}
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <form method="POST" class="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
-                {% csrf_token %}
-                <div class="lg:col-span-8 space-y-6">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Data Source (Google Sheet URL)</label>
-                        <input type="url" name="google_sheet_link" value="{{ client.google_sheet_link|default:'' }}" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Sender Email</label>
-                            <input type="email" name="sender_email" value="{{ client.sender_email|default:'' }}" placeholder="you@gmail.com" class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Gmail App Password</label>
-                            <input type="password" name="gmail_app_password" value="{{ client.gmail_app_password|default:'' }}" placeholder="••••••••••••••••" class="w-full bg-white p-3.5 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-medium text-slate-800 shadow-sm">
-                        </div>
-                    </div>
-                    <div class="pt-2">
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-3">Sheet Column Mapping</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <input type="text" name="col_name" value="{{ client.col_name|default:'Name' }}" placeholder="Name Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
-                            <input type="text" name="col_email" value="{{ client.col_email|default:'Email' }}" placeholder="Email Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
-                            <input type="text" name="col_query" value="{{ client.col_query|default:'Inquiry' }}" placeholder="Query Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
-                            <input type="text" name="col_status" value="{{ client.col_status|default:'Status' }}" placeholder="Status Col" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-semibold text-center focus-glow outline-none shadow-sm">
-                        </div>
-                    </div>
-                </div>
+            <!-- Add Template Form WITH FILE UPLOADER & LIVE PREVIEW -->
+            <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <h3 class="text-xl font-extrabold text-slate-900 mb-6">Deploy New Sequence</h3>
                 
-                <div class="lg:col-span-4 flex flex-col gap-4 justify-end">
-                    <button type="submit" name="save_config" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-4 rounded-xl border border-slate-200 transition-all shadow-sm">
-                        Save Configuration
-                    </button>
-                    <button type="submit" name="toggle_engine" class="w-full py-4 rounded-xl font-bold text-white transition-all shadow-lg hover:-translate-y-0.5 {% if client.is_engine_active %}bg-rose-500 hover:bg-rose-600 shadow-rose-500/30{% else %}bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30{% endif %}">
-                        {% if client.is_engine_active %}
-                            ⏸ STOP ENGINE
-                        {% else %}
-                            ▶ START AUTOMATION
-                        {% endif %}
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Add Template Form WITH FILE UPLOADER & LIVE PREVIEW -->
-        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
-            <h3 class="text-xl font-extrabold text-slate-900 mb-6">Deploy New Sequence</h3>
-            
-            <!-- ENCTYPE IS CRITICAL FOR UPLOADING FILES -->
-            <form method="POST" enctype="multipart/form-data" class="flex flex-col gap-6">
-                {% csrf_token %}
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-4">
                         <input type="text" name="subject" placeholder="Email Subject Line" class="w-full bg-white p-3 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-bold text-slate-800 shadow-sm" required>
                     </div>
                     
-                    <!-- NEW IMAGE FILE INPUT -->
                     <div class="md:col-span-5 relative">
                         <input type="file" name="image" id="image-upload-input" accept="image/*" class="w-full bg-white p-2.5 rounded-xl border border-slate-200 outline-none text-sm font-medium text-slate-800 shadow-sm cursor-pointer file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-all">
                     </div>
@@ -209,10 +208,10 @@
                 </div>
 
                 <button type="submit" name="add_template" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-xl font-bold self-end transition-all shadow-lg shadow-emerald-500/30 w-full md:w-auto hover:-translate-y-0.5 mt-2">
-                    + Save & Deploy Sequence
+                    + Save Credentials & Deploy Sequence
                 </button>
-            </form>
-        </div>
+            </div>
+        </form>
 
         <div class="space-y-4 pb-10">
             <h3 class="text-xl font-extrabold text-slate-900 mb-2">Active Templates</h3>
@@ -248,7 +247,9 @@
 
     </div>
 
-    <!-- Live Preview & Chart Script -->
+    <!-- ========================================== -->
+    <!-- RE-LINKED LIVE PREVIEW JAVASCRIPT         -->
+    <!-- ========================================== -->
     <script>
         const editor = document.getElementById('template-editor');
         const previewBox = document.getElementById('live-preview-box');
@@ -258,7 +259,6 @@
 
         let currentLocalImageUrl = '';
 
-        // Handle physical file selection and create a temporary local URL for preview
         imageUrlInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -277,10 +277,10 @@
                 return;
             }
 
-            // Replace variables with aesthetic placeholders
+            // Replace variables
             content = content.replace(/{{Name}}/gi, '<span style="background-color: #d1fae5; color: #065f46; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
 
-            // Inject the physical image preview at the top
+            // Inject the image at the top of the HTML if the file exists
             if (currentLocalImageUrl !== '') {
                 const imageHtml = `
                     <div style="text-align: center; margin-bottom: 20px;">
@@ -293,7 +293,6 @@
         }
 
         editor.addEventListener('input', updatePreview);
-
         subjectInput.addEventListener('input', function(e) {
             subjectBar.textContent = e.target.value.trim() === '' ? 'Subject Preview' : e.target.value;
         });
@@ -311,7 +310,7 @@
                     datasets: [{
                         label: 'Emails Sent',
                         data: chartData,
-                        backgroundColor: '#10b981', // Emerald green
+                        backgroundColor: '#10b981',
                         borderRadius: 6,
                         barPercentage: 0.5
                     }]
