@@ -93,9 +93,7 @@
             </div>
         </div>
 
-        <!-- ============================================== -->
-        <!-- UNIFIED FORM: SAVES CONFIG AND TEMPLATE TOGETHER -->
-        <!-- ============================================== -->
+        <!-- UNIFIED DATA PASSING FORM -->
         <form method="POST" enctype="multipart/form-data" class="space-y-8 relative z-10">
             {% csrf_token %}
             
@@ -168,7 +166,7 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-4">
-                        <input type="text" name="subject" placeholder="Email Subject Line" class="w-full bg-white p-3 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-bold text-slate-800 shadow-sm" required>
+                        <input type="text" name="subject" id="subject-input-field" placeholder="Email Subject Line" class="w-full bg-white p-3 rounded-xl border border-slate-200 focus-glow outline-none text-sm font-bold text-slate-800 shadow-sm" required>
                     </div>
                     
                     <div class="md:col-span-5 relative">
@@ -247,99 +245,110 @@
 
     </div>
 
-    <!-- ========================================== -->
-    <!-- RE-LINKED LIVE PREVIEW JAVASCRIPT         -->
-    <!-- ========================================== -->
+    <!-- ISOLATED LIVE PREVIEW SCRIPT -->
     <script>
-        const editor = document.getElementById('template-editor');
-        const previewBox = document.getElementById('live-preview-box');
-        const subjectInput = document.querySelector('input[name="subject"]');
-        const imageUrlInput = document.getElementById('image-upload-input');
-        const subjectBar = document.getElementById('preview-subject-bar');
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('template-editor');
+            const previewBox = document.getElementById('live-preview-box');
+            const subjectInput = document.getElementById('subject-input-field');
+            const imageUrlInput = document.getElementById('image-upload-input');
+            const subjectBar = document.getElementById('preview-subject-bar');
 
-        let currentLocalImageUrl = '';
+            let currentLocalImageUrl = '';
 
-        imageUrlInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                currentLocalImageUrl = URL.createObjectURL(file);
-            } else {
-                currentLocalImageUrl = '';
-            }
-            updatePreview();
-        });
-
-        function updatePreview() {
-            let content = editor.value;
-
-            if (content.trim() === '' && currentLocalImageUrl === '') {
-                previewBox.innerHTML = '<span class="text-slate-400 italic flex items-center justify-center h-full">Start typing HTML or select an image to preview...</span>';
-                return;
-            }
-
-            // Replace variables
-            content = content.replace(/{{Name}}/gi, '<span style="background-color: #d1fae5; color: #065f46; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
-
-            // Inject the image at the top of the HTML if the file exists
-            if (currentLocalImageUrl !== '') {
-                const imageHtml = `
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="${currentLocalImageUrl}" alt="Attached Banner" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                    </div>
-                `;
-                content = imageHtml + content;
-            }
-            previewBox.innerHTML = content;
-        }
-
-        editor.addEventListener('input', updatePreview);
-        subjectInput.addEventListener('input', function(e) {
-            subjectBar.textContent = e.target.value.trim() === '' ? 'Subject Preview' : e.target.value;
-        });
-
-        // Chart Initialization
-        const chartLabels = {{ chart_labels|safe|default:"[]" }};
-        const chartData = {{ chart_data|safe|default:"[]" }};
-        
-        if (chartLabels.length > 0) {
-            const ctx = document.getElementById('emailChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'Emails Sent',
-                        data: chartData,
-                        backgroundColor: '#10b981',
-                        borderRadius: 6,
-                        barPercentage: 0.5
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { color: '#f1f5f9', drawBorder: false },
-                            ticks: { stepSize: 1, color: '#94a3b8', font: {family: "'Segoe UI', sans-serif", weight: 'bold'} }
-                        },
-                        x: { 
-                            grid: { display: false }, 
-                            ticks: { color: '#94a3b8', font: {family: "'Segoe UI', sans-serif", weight: 'bold'} } 
-                        }
+            if (imageUrlInput) {
+                imageUrlInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        currentLocalImageUrl = URL.createObjectURL(file);
+                    } else {
+                        currentLocalImageUrl = '';
                     }
+                    updatePreview();
+                });
+            }
+
+            function updatePreview() {
+                if (!editor || !previewBox) return;
+                let content = editor.value;
+
+                if (content.trim() === '' && currentLocalImageUrl === '') {
+                    previewBox.innerHTML = '<span class="text-slate-400 italic flex items-center justify-center h-full">Start typing HTML or select an image to preview...</span>';
+                    return;
                 }
-            });
-        } else {
-            const canvas = document.getElementById('emailChart');
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = "#cbd5e1";
-            ctx.textAlign = "center";
-            ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-            ctx.fillText("No delivery data available yet.", canvas.width/2, canvas.height/2);
-        }
+
+                content = content.replace(/{{Name}}/gi, '<span style="background-color: #d1fae5; color: #065f46; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
+
+                if (currentLocalImageUrl !== '') {
+                    const imageHtml = `
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="${currentLocalImageUrl}" alt="Attached Banner" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        </div>
+                    `;
+                    content = imageHtml + content;
+                }
+                previewBox.innerHTML = content;
+            }
+
+            if (editor) editor.addEventListener('input', updatePreview);
+            if (subjectInput && subjectBar) {
+                subjectInput.addEventListener('input', function(e) {
+                    subjectBar.textContent = e.target.value.trim() === '' ? 'Subject Preview' : e.target.value;
+                });
+            }
+        });
+    </script>
+
+    <!-- ISOLATED ANALYTICS CHART SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const chartLabels = {{ chart_labels|safe|default:"[]" }};
+                const chartData = {{ chart_data|safe|default:"[]" }};
+                
+                if (chartLabels.length > 0) {
+                    const ctx = document.getElementById('emailChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: chartLabels,
+                            datasets: [{
+                                label: 'Emails Sent',
+                                data: chartData,
+                                backgroundColor: '#10b981',
+                                borderRadius: 6,
+                                barPercentage: 0.5
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { 
+                                    beginAtZero: true, 
+                                    grid: { color: '#f1f5f9', drawBorder: false },
+                                    ticks: { stepSize: 1, color: '#94a3b8', font: {family: "'Segoe UI', sans-serif", weight: 'bold'} }
+                                },
+                                x: { 
+                                    grid: { display: false }, 
+                                    ticks: { color: '#94a3b8', font: {family: "'Segoe UI', sans-serif", weight: 'bold'} } 
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    const canvas = document.getElementById('emailChart');
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = "#cbd5e1";
+                    ctx.textAlign = "center";
+                    ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+                    ctx.fillText("No delivery data available yet.", canvas.width/2, canvas.height/2);
+                }
+            } catch (err) {
+                console.error("Chart rendering skipped:", err);
+            }
+        });
     </script>
 </body>
 </html>
