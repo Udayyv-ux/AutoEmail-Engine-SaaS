@@ -96,7 +96,7 @@
                             {% for client in clients %}
                             <tr class="hover:bg-slate-800/30 transition">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <a href="{% url 'client_insights' client.id %}" class="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition duration-150">
+                                    <a href="{% url 'core:client_insights' client.public_id %}" class="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition duration-150">
                                         {{ client.business_name }}
                                     </a>
                                 </td>
