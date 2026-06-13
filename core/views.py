@@ -275,4 +275,4 @@ def custom_admin_login(request):
             return redirect('core:custom_admin_login')
 
     # This renders the screen with the username and password boxes
-   return render(request, 'account/admin_login.html')
+    return render(request, 'account/admin_login.html')
