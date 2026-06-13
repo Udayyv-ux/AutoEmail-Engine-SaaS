@@ -11,7 +11,7 @@ from django.db.models.functions import TruncDate
 from django.db.models import Count
 
 from .models import ClientProfile, EmailTemplate, SystemSettings, EmailLog, SiteSetting, PricingPlan, Policy
-from .services import EngineService  # Importing the decoupled business logic
+from .services import EngineService 
 
 # ==========================================
 # 0. FRONTEND WEBSITE VIEWS
@@ -39,7 +39,7 @@ def policy_page(request, slug):
 
 def dashboard_router(request):
     if not request.user.is_authenticated:
-        return redirect('/accounts/login/')
+        return redirect('account_login') # This is usually handled by AllAuth, keep as is
 
     client, created = ClientProfile.objects.get_or_create(user=request.user)
     if created or not client.business_name:
@@ -47,9 +47,9 @@ def dashboard_router(request):
         client.save()
 
     if request.user.is_superuser:
-        return redirect('super_admin_dashboard')
+        return redirect('core:super_admin_dashboard')
 
-    return redirect('client_portal')
+    return redirect('core:client_portal')
 
 def check_admin(user):
     return user.is_superuser
@@ -58,7 +58,7 @@ def check_admin(user):
 # 2. SUPER ADMIN VIEWS
 # ==========================================
 
-@user_passes_test(check_admin)
+@user_passes_test(check_admin, login_url='core:custom_admin_login')
 def super_admin_dashboard(request):
     site_settings, _ = SiteSetting.objects.get_or_create(id=1)
     
@@ -81,7 +81,6 @@ def super_admin_dashboard(request):
             messages.success(request, "New pricing tier injected.")
 
         elif form_type == "delete_plan":
-            # Real SaaS platforms soft-delete pricing plans so old users keep their grandfathered subscriptions
             PricingPlan.objects.filter(public_id=request.POST.get("plan_id")).update(is_active=False)
             messages.success(request, "Pricing tier archived.")
 
@@ -95,7 +94,7 @@ def super_admin_dashboard(request):
             )
             messages.success(request, "Legal policy updated successfully.")
 
-        return redirect('super_admin_dashboard')
+        return redirect('core:super_admin_dashboard')
 
     clients = ClientProfile.objects.select_related('user').all()
     return render(request, 'core/super_admin.html', {
@@ -110,28 +109,26 @@ def super_admin_dashboard(request):
     })
 
 
-@user_passes_test(check_admin)
+@user_passes_test(check_admin, login_url='core:custom_admin_login')
 def toggle_global_killswitch(request):
     settings_obj = SystemSettings.load()
     settings_obj.is_engine_paused = not settings_obj.is_engine_paused
     settings_obj.save()
     status = "PAUSED" if settings_obj.is_engine_paused else "RESUMED"
     messages.success(request, f"GLOBAL OVERRIDE: All engines are now {status}.")
-    return redirect('super_admin_dashboard')
+    return redirect('core:super_admin_dashboard')
 
 
-@user_passes_test(check_admin)
+@user_passes_test(check_admin, login_url='core:custom_admin_login')
 def force_sync_engine(request, public_id):
-    # Secured via public_id (UUID)
     client = get_object_or_404(ClientProfile, public_id=public_id)
     result = EngineService.process_client(client)
     messages.info(request, f"Engine Response: {result}")
-    return redirect('super_admin_dashboard')
+    return redirect('core:super_admin_dashboard')
 
 
-@user_passes_test(check_admin)
+@user_passes_test(check_admin, login_url='core:custom_admin_login')
 def client_insights(request, public_id):
-    # Secured via public_id (UUID) to prevent IDOR attacks
     client = get_object_or_404(ClientProfile, public_id=public_id)
 
     success_count = EmailLog.objects.filter(client=client, status=EmailLog.DeliveryStatus.SUCCESS).count()
@@ -163,7 +160,7 @@ def client_insights(request, public_id):
 @login_required
 def client_portal(request):
     if request.user.is_superuser:
-        return redirect('super_admin_dashboard')
+        return redirect('core:super_admin_dashboard')
 
     client, _ = ClientProfile.objects.get_or_create(user=request.user)
 
@@ -195,7 +192,6 @@ def client_portal(request):
             messages.success(request, "Template Deployed!")
 
         elif "delete_template" in request.POST:
-            # SOFT DELETION: Preserves foreign key integrity for EmailLogs
             EmailTemplate.objects.filter(
                 id=request.POST.get("template_id"), 
                 client=client
@@ -231,7 +227,7 @@ def client_portal(request):
 
     return render(request, 'core/client_portal.html', {
         'client': client,
-        'templates': client.templates.filter(is_active=True), # Only show active templates
+        'templates': client.templates.filter(is_active=True), 
         'recent_logs': client.email_logs.all()[:15],
         'chart_labels': json.dumps(chart_labels),
         'chart_data': json.dumps(chart_data),
@@ -246,7 +242,7 @@ def client_portal(request):
 @login_required
 def live_client_stats(request):
     try:
-        client = request.user.profile # Accessing via related_name defined in models
+        client = request.user.profile 
         return JsonResponse({
             'is_active': client.is_engine_active,
             'emails_sent': client.emails_sent_count,
@@ -273,9 +269,9 @@ def custom_admin_login(request):
         )
         if user is not None and user.is_staff:
             django_login(request, user)
-            return redirect('super_admin_dashboard')
+            return redirect('core:super_admin_dashboard')
         else:
             messages.error(request, "Invalid System Administrator credentials.")
-            return redirect('custom_admin_login')
+            return redirect('core:custom_admin_login')
 
     return render(request, 'account/admin_login.html')
