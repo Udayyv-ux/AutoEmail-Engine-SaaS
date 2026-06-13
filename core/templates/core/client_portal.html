@@ -182,9 +182,11 @@
                     <div class="flex flex-col">
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center justify-between">
                             HTML Editor
-                            <span class="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">Use {{Name}} for variables</span>
+                            <!-- FIXED: Wrapped {{Name}} in verbatim tag -->
+                            <span class="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">Use {% verbatim %}{{Name}}{% endverbatim %} for variables</span>
                         </label>
-                        <textarea id="template-editor" name="html_body" placeholder="<h1>Hello {{Name}}!</h1>&#10;<p>Write your HTML here...</p>" class="bg-[#0f172a] text-emerald-400 font-mono p-5 rounded-2xl border border-slate-800 w-full h-72 custom-scrollbar focus:ring-2 focus:ring-emerald-500 outline-none text-sm resize-y shadow-inner" required></textarea>
+                        <!-- FIXED: Wrapped placeholder {{Name}} in verbatim tag -->
+                        <textarea id="template-editor" name="html_body" placeholder="<h1>Hello {% verbatim %}{{Name}}{% endverbatim %}!</h1>&#10;<p>Write your HTML here...</p>" class="bg-[#0f172a] text-emerald-400 font-mono p-5 rounded-2xl border border-slate-800 w-full h-72 custom-scrollbar focus:ring-2 focus:ring-emerald-500 outline-none text-sm resize-y shadow-inner" required></textarea>
                     </div>
                     
                     <div class="flex flex-col">
@@ -277,7 +279,8 @@
                     return;
                 }
 
-                content = content.replace(/{{Name}}/gi, '<span style="background-color: #d1fae5; color: #065f46; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
+                // FIXED: Wrapped the regex match in verbatim so Django doesn't render it into a syntax error.
+                content = content.replace(/{% verbatim %}{{Name}}{% endverbatim %}/gi, '<span style="background-color: #d1fae5; color: #065f46; padding: 0 4px; border-radius: 4px; font-weight: bold;">[Client Name]</span>');
 
                 if (currentLocalImageUrl !== '') {
                     const imageHtml = `

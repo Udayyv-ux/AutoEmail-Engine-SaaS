@@ -1,58 +1,38 @@
 from django.urls import path
-
 from . import views
 
-
+# ENTERPRISE BEST PRACTICE: App namespacing
+# This prevents URL name collisions if you add more apps to the project later.
+app_name = 'core'
 
 urlpatterns = [
-
+    # =====================================================================
     # --- 1. PUBLIC MARKETING WEBSITE ---
-
-    # The main space-themed landing page (yourwebsite.com/)
-
+    # =====================================================================
     path('', views.landing_page, name='landing_page'),
-
-   
-
-    # Dynamic policy pages (Privacy Policy, Terms, etc.) editable from admin
-
     path('policy/<slug:slug>/', views.policy_page, name='policy_page'),
 
-   
-
-   
-
-    # --- 2. YOUR EXISTING WORKSPACE & ENGINE URLS ---
-
-    # Core app routing for logged-in clients
-
+    # =====================================================================
+    # --- 2. CLIENT WORKSPACE (TENANT APP) ---
+    # =====================================================================
     path('dashboard-router/', views.dashboard_router, name='dashboard_router'),
-
-   
-
     path('portal/', views.client_portal, name='client_portal'),
 
-    path('api/live-stats/', views.live_client_stats, name='live_client_stats'),
+    # =====================================================================
+    # --- 3. INTERNAL APIs (Versioned) ---
+    # =====================================================================
+    # APIs must be versioned (v1) so you can update them later without breaking mobile apps or webhooks
+    path('api/v1/client/live-stats/', views.live_client_stats, name='live_client_stats'),
 
-   
+    # =====================================================================
+    # --- 4. SYSTEM OPERATIONS (Master Console) ---
+    # =====================================================================
+    # Obscured the URL path slightly from 'master-console' and 'admin-auth' to deter basic bot scraping
+    path('system-ops/auth/', views.custom_admin_login, name='custom_admin_login'),
+    path('system-ops/dashboard/', views.super_admin_dashboard, name='super_admin_dashboard'),
+    path('system-ops/killswitch/toggle/', views.toggle_global_killswitch, name='toggle_killswitch'),
 
-    # Super Admin / Management Console
-
-    path('master-console/', views.super_admin_dashboard, name='super_admin_dashboard'),
-
-    path('master-console/force-sync/<int:client_id>/', views.force_sync_engine, name='force_sync_engine'),
-
-    path('master-console/toggle-killswitch/', views.toggle_global_killswitch, name='toggle_killswitch'),
-
-   
-
-    # Drill-down view for individual client insights
-
-    path('master-console/client/<int:client_id>/', views.client_insights, name='client_insights'),
-
-   
-
-    path('admin-auth/', views.custom_admin_login, name='custom_admin_login'),
-
-] 
-
+    # SECURITY UPGRADE: Replaced <int:client_id> with <uuid:public_id> to eliminate IDOR vulnerabilities.
+    path('system-ops/client/<uuid:public_id>/insights/', views.client_insights, name='client_insights'),
+    path('system-ops/client/<uuid:public_id>/force-sync/', views.force_sync_engine, name='force_sync_engine'),
+]
