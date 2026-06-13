@@ -21,7 +21,7 @@
             </div>
             <h2 class="text-xl font-bold text-white mb-2">Master Admin Console</h2>
             <p class="text-slate-400 text-sm mb-6">Manage tenants, view active pipelines, and monitor overall system health.</p>
-            <a href="{% url 'super_admin_dashboard' %}" class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Access Admin Panel</a>
+            <a href="{% url 'core:super_admin_dashboard' %}" class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Access Admin Panel</a>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 hover:border-emerald-500 transition duration-300 group shadow-xl">
@@ -30,7 +30,7 @@
             </div>
             <h2 class="text-xl font-bold text-white mb-2">Tenant Workspace</h2>
             <p class="text-slate-400 text-sm mb-6">Configure delivery endpoints, link Google Sheets, and build email templates.</p>
-            <a href="{% url 'client_portal' %}" class="block w-full text-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-3 px-4 rounded-lg transition">Access Client Portal</a>
+            <a href="{% url 'core:client_portal' %}" class="block w-full text-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-3 px-4 rounded-lg transition">Access Client Portal</a>
         </div>
 
     </div>

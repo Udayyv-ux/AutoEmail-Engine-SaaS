@@ -62,7 +62,7 @@
                         <h2 class="text-xl font-bold {% if system_settings.is_engine_paused %}text-rose-500{% else %}text-white{% endif %}">Master Engine Status</h2>
                         <p class="text-sm text-slate-400">Toggle global dispatch capabilities for all tenant nodes.</p>
                     </div>
-                    <form action="{% url 'toggle_killswitch' %}" method="POST">
+                    <form action="{% url 'core:toggle_killswitch' %}" method="POST">
                         {% csrf_token %}
                         <button type="submit" class="px-6 py-3 font-black rounded-lg shadow-lg transition {% if system_settings.is_engine_paused %}bg-emerald-600 hover:bg-emerald-500 text-white{% else %}bg-rose-600 hover:bg-rose-500 text-white{% endif %}">
                             {% if system_settings.is_engine_paused %}RESUME ALL ENGINES{% else %}ENGAGE KILL SWITCH{% endif %}
