@@ -202,7 +202,7 @@ def client_portal(request):
             ).update(is_active=False)
             messages.success(request, "Template Archived!")
 
-        return redirect('client_portal')
+        return redirect('core:client_portal')
 
     time_range = request.GET.get('range', '7d')
     now = timezone.now()
