@@ -1,294 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Super Admin Module Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-slate-100 antialiased font-sans p-8">
-    
-    <!-- HEADER WITH LOGOUT -->
-    <div class="max-w-7xl mx-auto flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master Platform Registry</h1>
-            <p class="text-slate-400 text-sm mt-1 flex items-center gap-2">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Multi-Tenant Operational Console Panel
-            </p>
-        </div>
-        <div class="flex gap-4">
-            <a href="{% url 'account_logout' %}" class="bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white px-5 py-2.5 rounded-lg font-bold shadow-md transition border border-slate-700 hover:border-rose-500 flex items-center gap-2">
-                System Logout
-            </a>
-        </div>
-    </div>
-
-    <!-- MAIN LAYOUT: SIDEBAR + CONTENT -->
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
-        
-        <!-- DYNAMIC SIDEBAR (Properly Closed) -->
-        <aside class="w-full md:w-64 flex-shrink-0 space-y-2">
-            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 px-2">Navigation</h2>
-                
-                <button onclick="switchTab('tab-clients', this)" class="tab-btn active-tab w-full text-left px-4 py-3 rounded-lg font-bold transition mb-2 bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-                    👥 Client Engine
-                </button>
-                <button onclick="switchTab('tab-policy', this)" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-bold transition mb-2 text-slate-400 hover:bg-slate-700 hover:text-white">
-                    📜 Legal Policies
-                </button>
-                <button onclick="switchTab('tab-website', this)" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-bold transition mb-2 text-slate-400 hover:bg-slate-700 hover:text-white">
-                    🌐 Website Setup
-                </button>
-                <button onclick="switchTab('tab-pricing', this)" class="tab-btn w-full text-left px-4 py-3 rounded-lg font-bold transition text-slate-400 hover:bg-slate-700 hover:text-white">
-                    🚀 Pricing Plans
-                </button>
-            </div>
-        </aside>
-
-        <!-- TAB CONTENT AREA -->
-        <main class="flex-1 relative">
-
-            <!-- ========================================== -->
-            <!-- TAB 1: CLIENT ENGINE                       -->
-            <!-- ========================================== -->
-            <div id="tab-clients" class="tab-section space-y-8 animate-fade-in block">
-                
-                <!-- GLOBAL KILL SWITCH -->
-                <div class="bg-slate-800/80 border {% if system_settings.is_engine_paused %}border-rose-500/50 bg-rose-500/10{% else %}border-slate-700{% endif %} rounded-xl p-6 shadow-lg flex justify-between items-center">
-                    <div>
-                        <h2 class="text-xl font-bold {% if system_settings.is_engine_paused %}text-rose-500{% else %}text-white{% endif %}">Master Engine Status</h2>
-                        <p class="text-sm text-slate-400">Toggle global dispatch capabilities for all tenant nodes.</p>
-                    </div>
-                    <form action="{% url 'core:toggle_killswitch' %}" method="POST">
-                        {% csrf_token %}
-                        <button type="submit" class="px-6 py-3 font-black rounded-lg shadow-lg transition {% if system_settings.is_engine_paused %}bg-emerald-600 hover:bg-emerald-500 text-white{% else %}bg-rose-600 hover:bg-rose-500 text-white{% endif %}">
-                            {% if system_settings.is_engine_paused %}RESUME ALL ENGINES{% else %}ENGAGE KILL SWITCH{% endif %}
-                        </button>
-                    </form>
-                </div>
-
-                <!-- STATS -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 flex flex-col items-center">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Operational Client Channels</span>
-                        <span class="text-5xl font-black mt-2 text-white">{{ total_count|default:"0" }}</span>
-                    </div>
-                    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 flex flex-col items-center">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Active background Pipelines Running</span>
-                        <span class="text-5xl font-black mt-2 text-emerald-400">{{ active_count|default:"0" }}</span>
-                    </div>
-                </div>
-
-                <!-- CLIENT REGISTRY TABLE -->
-                <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
-                    <table class="min-w-full divide-y divide-slate-700">
-                        <thead class="bg-slate-800/50">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Business Domain Node</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Delivery Vector Mail</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Automation Engine Matrix Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-700 bg-slate-900/40">
-                            {% for client in clients %}
-                            <tr class="hover:bg-slate-800/30 transition">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <a href="{% url 'client_insights' client.id %}" class="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition duration-150">
-                                        {{ client.business_name }}
-                                    </a>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-slate-300">{{ client.sender_email|default:"Not Initialized" }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    {% if client.is_engine_active %}
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Operational</span>
-                                    {% else %}
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">Deactivated</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ========================================== -->
-            <!-- TAB 2: WEBSITE TEXT EDITOR                 -->
-            <!-- ========================================== -->
-            <div id="tab-website" class="tab-section hidden animate-fade-in space-y-6">
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                    <h2 class="text-2xl font-bold text-white mb-6">Website Text & Hero Control</h2>
-                    
-                    <form method="POST" class="space-y-5">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="update_hero">
-                        
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Site Name (Top Left Navbar Logo)</label>
-                            <input type="text" name="site_name" value="{{ site_settings.site_name|default:'' }}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Main Hero Title</label>
-                            <input type="text" name="hero_title" value="{{ site_settings.hero_title|default:'' }}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Hero Subtitle Text</label>
-                            <textarea name="hero_subtitle" rows="3" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">{{ site_settings.hero_subtitle|default:'' }}</textarea>
-                        </div>
-                        
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg transition w-full md:w-auto">
-                            Deploy Website Changes
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- ========================================== -->
-            <!-- TAB 3: PRICING PLAN GENERATOR              -->
-            <!-- ========================================== -->
-            <div id="tab-pricing" class="tab-section hidden animate-fade-in space-y-6">
-                
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                    <h2 class="text-2xl font-bold text-white mb-2">Add New Pricing Tier</h2>
-                    <p class="text-slate-400 text-sm mb-6">Creating a box here instantly pushes it to the public landing page.</p>
-                    
-                    <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="add_plan">
-                        
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Tier Name</label>
-                            <input type="text" name="plan_name" placeholder="e.g. Enterprise" required class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Price Label</label>
-                            <input type="text" name="plan_price" placeholder="e.g. ₹35,000" required class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Features (Comma separated)</label>
-                            <input type="text" name="plan_features" placeholder="AI Routing, Support" required class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <div class="md:col-span-3 mt-2">
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-lg transition">
-                                + Inject Pricing Box
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {% for plan in plans %}
-                    <div class="relative rounded-xl border border-slate-600 overflow-hidden shadow-2xl p-6 group flex flex-col justify-between" 
-                         style="background-color: #0b0c10; background-image: radial-gradient(circle at 10% 20%, rgba(76, 29, 149, 0.4), transparent 40%), radial-gradient(circle at 90% 80%, rgba(29, 78, 216, 0.4), transparent 40%);">
-                        <div class="absolute inset-0 opacity-40 mix-blend-screen pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/stardust.png');"></div>
-                        <div class="relative z-10">
-                            <h3 class="text-xl font-bold text-indigo-300 uppercase tracking-wider">{{ plan.name }}</h3>
-                            <div class="text-4xl font-black text-white my-3">{{ plan.price }}</div>
-                            <p class="text-sm text-slate-300 leading-relaxed mb-6">{{ plan.features }}</p>
-                        </div>
-                        <form method="POST" class="relative z-10 mt-auto pt-4 border-t border-slate-700/50">
-                            {% csrf_token %}
-                            <input type="hidden" name="form_type" value="delete_plan">
-                            <input type="hidden" name="plan_id" value="{{ plan.id }}">
-                            <button type="submit" class="text-rose-400 hover:text-rose-300 text-sm font-bold uppercase tracking-wider flex items-center gap-2 transition">
-                                Terminate Plan
-                            </button>
-                        </form>
-                    </div>
-                    {% empty %}
-                    <div class="col-span-full p-8 text-center text-slate-500 border border-dashed border-slate-700 rounded-xl">
-                        No pricing tiers detected. Add one above to populate the grid.
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- ========================================== -->
-            <!-- TAB 4: LEGAL POLICY EDITOR                 -->
-            <!-- ========================================== -->
-            <div id="tab-policy" class="tab-section hidden animate-fade-in space-y-6">
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                    <h2 class="text-2xl font-bold text-white mb-2">Legal Documents Editor</h2>
-                    <p class="text-slate-400 text-sm mb-6">Create or overwrite your terms and policies. Use 'privacy-policy' or 'terms' as the URL slug.</p>
-                    
-                    <form method="POST" class="space-y-4">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="save_policy">
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-bold text-slate-400 mb-2">Policy Title</label>
-                                <input type="text" name="title" placeholder="e.g., Privacy Policy" required class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-slate-400 mb-2">URL Slug (Crucial)</label>
-                                <input type="text" name="slug" placeholder="e.g., privacy-policy" required class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500">
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-bold text-slate-400 mb-2">Document Content (HTML supported)</label>
-                            <textarea name="content" rows="10" required class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"></textarea>
-                        </div>
-                        
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg transition">
-                            Save Policy Document
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Live Policies List -->
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                    <h3 class="font-bold text-white mb-4">Active Documents</h3>
-                    <div class="space-y-3">
-                        {% for policy in policies %}
-                        <div class="p-4 bg-slate-900 border border-slate-700 rounded-lg flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-indigo-400">{{ policy.title }}</div>
-                                <div class="text-xs text-slate-500">URL: /policy/{{ policy.slug }}</div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="text-slate-500 text-sm">No policies created yet.</div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- FOOTER SIGNATURE -->
-    <div class="max-w-7xl mx-auto mt-12 mb-8 text-center text-xs font-bold tracking-widest text-slate-600 uppercase">
-        AutoEmail Engine - Created by Uday
-    </div>
-
-    <!-- TAILWIND ANIMATION & JAVASCRIPT CONFIG -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Console Login</title>
     <style>
-        .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0c10; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; background-image: radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.2), transparent 25%), radial-gradient(circle at 85% 30%, rgba(29, 78, 216, 0.2), transparent 25%); }
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: url('https://www.transparenttextures.com/patterns/stardust.png'); animation: moveStars 100s linear infinite; }
+        @keyframes moveStars { from { background-position: 0 0; } to { background-position: 1000px 500px; } }
+        
+        .login-box { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; text-align: center; backdrop-filter: blur(10px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        h2 { margin-top: 0; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px; font-size: 1.2rem; margin-bottom: 30px;}
+        
+        input { width: 100%; padding: 12px; margin-bottom: 20px; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; color: white; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        input:focus { outline: none; border-color: #6366f1; }
+        
+        button { width: 100%; background-color: #4f46e5; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #4338ca; }
+        
+        .messages { color: #ef4444; margin-bottom: 20px; font-size: 0.9rem; font-weight: bold; }
     </style>
-    <script>
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-section').forEach(el => {
-                el.classList.add('hidden');
-                el.classList.remove('block');
-            });
-            
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20');
-                el.classList.add('text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
-            });
+</head>
+<body>
+    <div class="stars"></div>
 
-            document.getElementById(tabId).classList.remove('hidden');
-            document.getElementById(tabId).classList.add('block');
-            
-            btn.classList.remove('text-slate-400', 'hover:bg-slate-700');
-            btn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20');
-        }
-    </script>
+    <div class="login-box">
+        <h2>System Administrator</h2>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'core:custom_admin_login' %}">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Admin Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Authenticate</button>
+        </form>
+    </div>
 </body>
 </html>
