@@ -1,11 +1,9 @@
 import os
 import time
 import random
-import smtplib
-import ssl
+import base64
 import logging
 import traceback
-from typing import List, Optional
 from email.utils import formataddr
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -18,6 +16,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
 # Models
 from core.models import ClientProfile, EmailTemplate
@@ -40,52 +39,28 @@ GROQ_API_TOKEN = os.environ.get('GROQ_API_KEY', '').strip()
 # =====================================================================
 
 class EmailSender:
-    """Handles SMTP connections with Triple-Port Fallback."""
+    """Handles email sending strictly via the HTTP Gmail API (No App Passwords Needed)."""
     def __init__(self, client_profile):
         self.client = client_profile
-        self.server = None
+        self.service = None
 
-    def connect(self):
-        # 1. 465 (SSL - Standard), 2. 587 (STARTTLS), 3. 2525 (Alternative relay)
-        connection_strategies = [
-            (465, 'ssl'),
-            (587, 'starttls'),
-            (2525, 'starttls')
-        ]
-        
-        last_error = None
-        
-        for port, strategy in connection_strategies:
-            try:
-                logger.info(f"[{self.client.business_name}] Attempting SMTP on port {port} ({strategy})...")
-                if strategy == 'ssl':
-                    context = ssl.create_default_context()
-                    self.server = smtplib.SMTP_SSL('smtp.gmail.com', port, context=context, timeout=15)
-                else:
-                    self.server = smtplib.SMTP('smtp.gmail.com', port, timeout=15)
-                    self.server.starttls()
-                
-                self.server.login(self.client.sender_email, self.client.gmail_app_password)
-                logger.info(f"[{self.client.business_name}] ✅ SMTP Auth SUCCESS on port {port}!")
-                return 
-                
-            except Exception as e:
-                logger.warning(f"[{self.client.business_name}] ⚠️ Port {port} failed: {str(e)}")
-                last_error = e
-                if self.server:
-                    try:
-                        self.server.quit()
-                    except:
-                        pass
-                    self.server = None
-        
-        raise Exception(f"All SMTP connection attempts blocked. Last error: {str(last_error)}")
+    def connect(self, creds):
+        try:
+            logger.info(f"[{self.client.business_name}] Initializing Gmail API Service...")
+            self.service = build('gmail', 'v1', credentials=creds, cache_discovery=False)
+            logger.info(f"[{self.client.business_name}] ✅ Gmail API Service Connected!")
+        except Exception as e:
+            logger.error(f"[{self.client.business_name}] ❌ Failed to connect to Gmail API: {str(e)}")
+            raise
 
     def send(self, to_email: str, name: str, template: EmailTemplate):
-        if not self.server:
-            raise Exception("SMTP Server not connected.")
+        if not self.service:
+            raise Exception("Gmail API Service not connected.")
             
         msg = MIMEMultipart('related')
+        
+        # Gmail API will force the sending email to be the logged-in user, 
+        # but we can still set the Business Name as the display name!
         msg['From'] = formataddr((self.client.business_name, self.client.sender_email))
         msg['To'] = to_email
         msg['Subject'] = template.subject
@@ -111,14 +86,17 @@ class EmailSender:
         else:
             msg_alternative.attach(MIMEText(compiled_html, 'html'))
 
-        self.server.send_message(msg)
+        # The Gmail API requires the message to be url-safe base64 encoded
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
+
+        # Send via the API using 'me' (the authenticated user)
+        self.service.users().messages().send(
+            userId='me',
+            body={'raw': raw_message}
+        ).execute()
 
     def disconnect(self):
-        if self.server:
-            try:
-                self.server.quit()
-            except:
-                pass
+        self.service = None
 
 
 class PipelineProcessor:
@@ -130,13 +108,13 @@ class PipelineProcessor:
     def execute(self):
         logger.info(f"\n--- [ENGINE NODE] Booting Pipeline: {self.client.business_name} ---")
         
-        if not all([self.client.sender_email, self.client.gmail_app_password, self.client.google_sheet_link]):
-            logger.warning(f"[{self.client.business_name}] Missing credentials. Skipping.")
+        if not self.client.google_sheet_link:
+            logger.warning(f"[{self.client.business_name}] Missing Google Sheet Link. Skipping.")
             return
 
         google_token = SocialToken.objects.filter(account__user=self.client.user, account__provider='google').first()
         if not google_token:
-            logger.warning(f"[{self.client.business_name}] No Google OAuth Token. Skipping.")
+            logger.warning(f"[{self.client.business_name}] No Google OAuth Token found. Skipping.")
             return
 
         templates = list(EmailTemplate.objects.filter(client=self.client))
@@ -146,8 +124,7 @@ class PipelineProcessor:
             
         template_map = {t.project_id.lower(): t for t in templates}
 
-        # 1. Connect to Sheets
-        logger.info(f"[{self.client.business_name}] Connecting to Google Sheets...")
+        # 1. Connect to Sheets & Construct API Credentials
         try:
             creds = Credentials(
                 token=google_token.token,
@@ -164,12 +141,12 @@ class PipelineProcessor:
             headers = sheet.row_values(1)
             
             if self.client.col_status not in headers:
-                logger.warning(f"[{self.client.business_name}] Status column '{self.client.col_status}' not found in sheet.")
+                logger.warning(f"[{self.client.business_name}] Status column '{self.client.col_status}' not found.")
                 return
             status_col_index = headers.index(self.client.col_status) + 1
             
         except Exception as e:
-            logger.error(f"[{self.client.business_name}] Sheet Connection Error: {str(e)}")
+            logger.error(f"[{self.client.business_name}] API Connection Error: {str(e)}")
             return
 
         # 2. Identify rows that need processing
@@ -186,12 +163,12 @@ class PipelineProcessor:
             logger.info(f"[{self.client.business_name}] No unread/new leads found.")
             return
 
-        # 3. Connect to AI & SMTP
+        # 3. Connect to AI & Gmail API
         ai_client = Groq(api_key=GROQ_API_TOKEN, timeout=15.0)
         try:
-            self.email_sender.connect()
+            # Initialize Gmail API with the user's OAuth creds
+            self.email_sender.connect(creds)
         except Exception as e:
-            logger.error(f"[{self.client.business_name}] Email Auth Failed: {str(e)}")
             return
 
         cells_to_update = []
@@ -224,29 +201,25 @@ class PipelineProcessor:
                     logger.warning(f"[{self.client.business_name}] AI Hallucination: '{matched_category}'. Skipping.")
                     continue
                 
-                template = template_map[matched_category]
-
-                # Send Email
-                self.email_sender.send(email, name, template)
+                # Send Email via Gmail API
+                self.email_sender.send(email, name, template_map[matched_category])
                 emails_sent += 1
                 logger.info(f"[{self.client.business_name}] ✅ Blast successful to {email}")
                 
                 cells_to_update.append(gspread.Cell(row=actual_row, col=status_col_index, value="SENT"))
 
-                # 5. Smart Throttling
-                sleep_time = random.uniform(2.5, 4.5)
-                time.sleep(sleep_time)
+                # Smart Throttling for Gmail API
+                time.sleep(random.uniform(2.5, 4.5))
 
             except Exception as e:
                 logger.error(f"[{self.client.business_name}] Failed sending to {email}: {str(e)}")
 
         self.email_sender.disconnect()
 
-        # 6. Save State
+        # 5. Save State
         if cells_to_update:
             try:
                 sheet.update_cells(cells_to_update)
-                logger.info(f"[{self.client.business_name}] Marked {len(cells_to_update)} rows as SENT in Google Sheets.")
             except Exception as e:
                 logger.error(f"[{self.client.business_name}] Failed to update Google Sheet: {str(e)}")
             
@@ -255,12 +228,8 @@ class PipelineProcessor:
         self.client.save(update_fields=['emails_sent_count', 'last_scanned'])
 
 
-# =====================================================================
-# 3. COMMAND ENTRY POINT (Cron Safe)
-# =====================================================================
-
 class Command(BaseCommand):
-    help = "Processes the email engine pipeline safely for Cron execution."
+    help = "Processes the email engine pipeline safely via Gmail API."
 
     def handle(self, *args, **options):
         logger.info("Initializing AutoEmail Engine Matrix...")
@@ -275,7 +244,6 @@ class Command(BaseCommand):
             logger.info("No active clients detected.")
             return
         
-        # Sequentially process each node to prevent Google Sheet Rate Limits & Deadlocks
         for client in active_nodes:
             processor = PipelineProcessor(client)
             try:
@@ -284,4 +252,4 @@ class Command(BaseCommand):
                 logger.error(f"Critical fault in {client.business_name}: {str(e)}")
                 traceback.print_exc()
         
-        logger.info("Matrix Cycle Complete. Shutting down until next Cron trigger.")
+        logger.info("Matrix Cycle Complete. Shutting down until next trigger.")
