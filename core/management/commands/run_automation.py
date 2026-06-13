@@ -1,7 +1,10 @@
 import os
 import time
+import random
 import logging
 import traceback
+import smtplib
+import ssl
 from typing import List, Dict, Optional
 from email.utils import formataddr
 from email.mime.text import MIMEText
@@ -65,23 +68,54 @@ class AIEngine:
 
 class EmailSender:
     """
-    Abstracts email sending. 
-    NOTE: To permanently fix Railway blocking, transition this to use 
-    an HTTP API (like Resend) or the Google Gmail API (Port 443).
+    Abstracts email sending with smart Port Fallback.
+    Tries 587 (STARTTLS), then 465 (SSL) if blocked.
     """
     def __init__(self, client_profile):
         self.client = client_profile
         self.server = None
 
     def connect(self):
-        import smtplib
-        # Fallback to SMTP relay ports like 2525 if standard ports are blocked by PaaS
-        # Better yet: Swap this entire method out for an HTTP request to Resend/SendGrid.
-        self.server = smtplib.SMTP('smtp.gmail.com', 587) 
-        self.server.starttls()
-        self.server.login(self.client.sender_email, self.client.gmail_app_password)
+        # Port Fallback Strategy Array
+        connection_strategies = [
+            (587, 'starttls'),
+            (465, 'ssl')
+        ]
+        
+        last_error = None
+        
+        for port, strategy in connection_strategies:
+            try:
+                logger.info(f"[{self.client.business_name}] Attempting SMTP connection via port {port} ({strategy})...")
+                if strategy == 'ssl':
+                    context = ssl.create_default_context()
+                    self.server = smtplib.SMTP_SSL('smtp.gmail.com', port, context=context, timeout=15)
+                else:
+                    self.server = smtplib.SMTP('smtp.gmail.com', port, timeout=15)
+                    self.server.starttls()
+                
+                self.server.login(self.client.sender_email, self.client.gmail_app_password)
+                logger.info(f"[{self.client.business_name}] ✅ SMTP Auth SUCCESS on port {port}!")
+                return # Exit the function successfully
+                
+            except Exception as e:
+                logger.warning(f"[{self.client.business_name}] ⚠️ SMTP failed on port {port}: {str(e)}")
+                last_error = e
+                if self.server:
+                    try:
+                        self.server.quit()
+                    except:
+                        pass
+                    self.server = None
+        
+        # If we get here, all connection attempts failed
+        logger.error(f"[{self.client.business_name}] ❌ ALL SMTP connection attempts failed.")
+        raise Exception(f"Failed to connect to SMTP. Last error: {str(last_error)}")
 
     def send(self, to_email: str, name: str, template: EmailTemplate):
+        if not self.server:
+            raise Exception("SMTP Server not connected. Call connect() first.")
+            
         msg = MIMEMultipart('related')
         msg['From'] = formataddr((self.client.business_name, self.client.sender_email))
         msg['To'] = to_email
@@ -113,7 +147,10 @@ class EmailSender:
 
     def disconnect(self):
         if self.server:
-            self.server.quit()
+            try:
+                self.server.quit()
+            except:
+                pass
 
 
 class PipelineProcessor:
@@ -144,6 +181,7 @@ class PipelineProcessor:
         template_map = {t.project_id.lower(): t for t in templates}
 
         # 2. Extract Data
+        logger.info(f"[{self.client.business_name}] Connecting to Google Sheets...")
         try:
             creds = Credentials(
                 token=google_token.token,
@@ -158,9 +196,28 @@ class PipelineProcessor:
             
             records = sheet.get_all_records()
             headers = sheet.row_values(1)
+            
+            if self.client.col_status not in headers:
+                logger.warning(f"[{self.client.business_name}] Status column '{self.client.col_status}' not found in sheet.")
+                return
             status_col_index = headers.index(self.client.col_status) + 1
+            
         except Exception as e:
             logger.error(f"[{self.client.business_name}] Sheet Error: {str(e)}")
+            return
+
+        # Pre-flight check: Count rows we actually need to send first. 
+        # Prevents unnecessary SMTP connections!
+        rows_to_process = []
+        for index, row in enumerate(records):
+            status = str(row.get(self.client.col_status, "")).strip().upper()
+            email = str(row.get(self.client.col_email, "")).strip()
+            query = str(row.get(self.client.col_query, "")).strip()
+            if status != "SENT" and "@" in email and len(query) >= 2:
+                rows_to_process.append((index, row))
+
+        if not rows_to_process:
+            logger.info(f"[{self.client.business_name}] No new records to process.")
             return
 
         # 3. Process Logic
@@ -173,15 +230,11 @@ class PipelineProcessor:
         cells_to_update = []
         emails_sent = 0
 
-        for index, row in enumerate(records):
+        for index, row in rows_to_process:
             actual_row = index + 2
-            status = str(row.get(self.client.col_status, "")).strip().upper()
             email = str(row.get(self.client.col_email, "")).strip()
             name = str(row.get(self.client.col_name, "Customer"))
             query = str(row.get(self.client.col_query, "")).strip()
-
-            if status == "SENT" or "@" not in email or len(query) < 2:
-                continue
 
             logger.info(f"[{self.client.business_name}] Processing Row {actual_row} -> {email}")
 
@@ -197,19 +250,30 @@ class PipelineProcessor:
                 # Send Email
                 self.email_sender.send(email, name, template)
                 emails_sent += 1
+                logger.info(f"[{self.client.business_name}] ✅ Email blasted to {email}")
                 
                 # Queue batch update
                 cells_to_update.append(gspread.Cell(row=actual_row, col=status_col_index, value="SENT"))
+
+                # ==========================================
+                # THE SLEEP TIMER (ANTI-SPAM THROTTLING)
+                # ==========================================
+                sleep_time = random.uniform(2.5, 5.0)
+                logger.info(f"[{self.client.business_name}] Pausing for {sleep_time:.1f} seconds to bypass spam filters...")
+                time.sleep(sleep_time)
 
             except Exception as e:
                 logger.error(f"[{self.client.business_name}] Failed row {actual_row}: {str(e)}")
 
         self.email_sender.disconnect()
 
-        # 4. Batch DB & Sheet Updates (Prevents 429 Rate Limits)
+        # 4. Batch DB & Sheet Updates
         if cells_to_update:
-            sheet.update_cells(cells_to_update)
-            logger.info(f"[{self.client.business_name}] Batch updated {len(cells_to_update)} rows in Google Sheets.")
+            try:
+                sheet.update_cells(cells_to_update)
+                logger.info(f"[{self.client.business_name}] Batch updated {len(cells_to_update)} rows in Google Sheets.")
+            except Exception as e:
+                logger.error(f"[{self.client.business_name}] Failed to update Google Sheet: {str(e)}")
             
         self.client.emails_sent_count += emails_sent
         self.client.last_scanned = timezone.now()
@@ -229,10 +293,11 @@ class Command(BaseCommand):
             logger.error("FATAL: GROQ_API_KEY missing.")
             return
 
-        # ENTERPRISE NOTE: 
-        # Remove the `while True` loop if running in production. 
-        # This script should be executed every 5 minutes by a Cron job or Celery Beat.
         active_nodes = ClientProfile.objects.filter(is_engine_active=True)
+        
+        if not active_nodes.exists():
+            logger.info("No active clients found to process.")
+            return
         
         for client in active_nodes:
             processor = PipelineProcessor(client)
