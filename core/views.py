@@ -274,4 +274,4 @@ def custom_admin_login(request):
             messages.error(request, "Invalid System Administrator credentials.")
             return redirect('core:custom_admin_login')
 
-    return render(request, 'account/admin_login.html')
+    return render(request, 'account/super_admin.html')
